@@ -78,7 +78,7 @@ const ResetPasswordModal: React.FC<Props> = ({ target, onClose }) => {
       confirmLoading={loading}
       okText="重置"
       cancelText="取消"
-      destroyOnClose
+      destroyOnHidden
     >
       {target && (
         <p style={{ color: 'var(--text-2)' }}>

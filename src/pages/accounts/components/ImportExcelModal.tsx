@@ -69,7 +69,7 @@ const ImportExcelModal: React.FC<Props> = ({ open, onClose, onSuccess }) => {
           </>
         )
       }
-      destroyOnClose
+      destroyOnHidden
     >
       {result ? (
         <BatchResultView result={result} />

@@ -86,7 +86,7 @@ const CreateAccountModal: React.FC<Props> = ({
       confirmLoading={loading}
       okText="开通"
       cancelText="取消"
-      destroyOnClose
+      destroyOnHidden
     >
       <Form<FormValues> form={form} layout="vertical" style={{ marginTop: 16 }}>
         <Form.Item

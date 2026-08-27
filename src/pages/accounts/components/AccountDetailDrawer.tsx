@@ -36,7 +36,7 @@ const AccountDetailDrawer: React.FC<Props> = ({ id, onClose }) => {
       open={!!id}
       onClose={onClose}
       width={480}
-      destroyOnClose
+      destroyOnHidden
     >
       <Spin spinning={loading}>
         {detail && (

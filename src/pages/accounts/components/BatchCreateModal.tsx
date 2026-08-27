@@ -68,7 +68,7 @@ const BatchCreateModal: React.FC<Props> = ({
       okText="提交开通"
       cancelText="关闭"
       width={860}
-      destroyOnClose
+      destroyOnHidden
       okButtonProps={{ style: result ? { display: 'none' } : undefined }}
     >
       {result ? (
