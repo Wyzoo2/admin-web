@@ -14,7 +14,7 @@ import {
   Typography,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { ReloadOutlined, SearchOutlined } from '@ant-design/icons';
+import { ReloadOutlined, SearchOutlined, DownloadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { auditApi } from '../../api/audit';
 import type { AuditLogItem, AuditLogQuery } from '../../types';
@@ -58,6 +58,7 @@ const AuditLog: React.FC = () => {
   const [data, setData] = useState<AuditLogItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [filters, setFilters] = useState<Filters>({});
@@ -97,6 +98,81 @@ const AuditLog: React.FC = () => {
     form.resetFields();
     setPage(1);
     setFilters({});
+  };
+
+  /** 按当前筛选条件分页拉取全部数据，导出 CSV（UTF-8 BOM） */
+  const onExport = async () => {
+    setExporting(true);
+    try {
+      const all: AuditLogItem[] = [];
+      let page = 1;
+      const pageSize = 200;
+      let totalFetched = 0;
+      let totalRecords = 0;
+      do {
+        const params: AuditLogQuery = {
+          page,
+          pageSize,
+          ...filters,
+        };
+        const res = await auditApi.list(params);
+        const list = res.data || [];
+        all.push(...list);
+        totalRecords = res.total || 0;
+        totalFetched += list.length;
+        page++;
+        if (list.length < pageSize) break;
+      } while (totalFetched < totalRecords);
+
+      // CSV 列与转义
+      const headers = [
+        '时间',
+        '操作人',
+        '手机号',
+        '动作',
+        '动作(原始)',
+        '目标类型',
+        '详情',
+        'IP 地址',
+        'User Agent',
+      ];
+      const esc = (v: unknown) => {
+        const s = v === null || v === undefined ? '' : String(v);
+        return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+      };
+      const rows = all.map((r) => [
+        r.created_at ? dayjs(r.created_at).format('YYYY-MM-DD HH:mm:ss') : '',
+        esc(r.user_display_name),
+        esc(r.user_phone),
+        esc(ACTION_LABEL_MAP[r.action] || r.action),
+        esc(r.action),
+        esc(r.target_type ? TARGET_TYPE_LABEL[r.target_type] || r.target_type : ''),
+        esc(r.detail),
+        esc(r.ip_address),
+        esc(r.user_agent),
+      ]);
+
+      const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join(
+        '\r\n',
+      );
+      const blob = new Blob(['\uFEFF' + csv], {
+        type: 'text/csv;charset=utf-8',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const ts = dayjs().format('YYYYMMDD_HHmmss');
+      a.href = url;
+      a.download = `审计日志_${ts}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      message.success(`已导出 ${all.length} 条记录`);
+    } catch (e: any) {
+      message.error(e.message || '导出失败');
+    } finally {
+      setExporting(false);
+    }
   };
 
   const renderAction = (action: string) => {
@@ -192,9 +268,18 @@ const AuditLog: React.FC = () => {
     <Card
       title="审计日志"
       extra={
-        <Button icon={<ReloadOutlined />} onClick={fetchList}>
-          刷新
-        </Button>
+        <Space>
+          <Button
+            icon={<DownloadOutlined />}
+            onClick={onExport}
+            loading={exporting}
+          >
+            导出 Excel
+          </Button>
+          <Button icon={<ReloadOutlined />} onClick={fetchList}>
+            刷新
+          </Button>
+        </Space>
       }
     >
       <Form
