@@ -99,3 +99,40 @@ export interface AccountListQuery {
   department?: string;
   status?: UserStatus;
 }
+
+// ============ 审计日志 ============
+
+export type AuditAction =
+  | 'login'
+  | 'change_password'
+  | 'create_account'
+  | 'batch_import_accounts'
+  | 'reset_password'
+  | 'enable_account'
+  | 'disable_account'
+  | 'remove_device';
+
+export interface AuditLogItem {
+  id: string;
+  user_id: string | null;
+  action: string;
+  target_type: string | null;
+  target_id: string | null;
+  detail: string | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  created_at: string;
+  user_display_name: string | null;
+  user_phone: string | null;
+}
+
+export interface AuditLogQuery {
+  page?: number;
+  pageSize?: number;
+  user_id?: string;
+  action?: string;
+  target_type?: string;
+  start_time?: string;
+  end_time?: string;
+  keyword?: string;
+}

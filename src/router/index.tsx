@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom';
 import AdminLayout from '../layouts/AdminLayout';
 import Login from '../pages/login/Login';
 import AccountList from '../pages/accounts/AccountList';
+import AuditLog from '../pages/audit/AuditLog';
 import ChangePassword from '../pages/profile/ChangePassword';
 import { tokenStore } from '../api/request';
 
@@ -38,6 +39,7 @@ export const router = createBrowserRouter([
           // 根路径默认跳转到账号管理页
           { path: '/', element: <Navigate to="/accounts" replace /> },
           { path: '/accounts', element: <AccountList /> },
+          { path: '/audit-logs', element: <AuditLog /> },
           { path: '/change-password', element: <ChangePassword /> },
         ],
       },

@@ -1,5 +1,6 @@
 import { App, Avatar, Dropdown, Layout, Menu, Tooltip } from 'antd';
 import {
+  FileTextOutlined,
   KeyOutlined,
   LogoutOutlined,
   MoonOutlined,
@@ -23,9 +24,11 @@ const AdminLayout: React.FC = () => {
   const toggleTheme = useThemeStore((s) => s.toggle);
   const isDark = mode === 'dark';
 
-  const selectedKey = location.pathname.startsWith('/change-password')
-    ? '/change-password'
-    : '/accounts';
+  const selectedKey = location.pathname.startsWith('/audit-logs')
+    ? '/audit-logs'
+    : location.pathname.startsWith('/change-password')
+      ? '/change-password'
+      : '/accounts';
 
   const handleLogout = () => {
     logout();
@@ -88,6 +91,7 @@ const AdminLayout: React.FC = () => {
           style={{ background: 'transparent', border: 'none', padding: '10px 0' }}
           items={[
             { key: '/accounts', icon: <TeamOutlined />, label: '账号管理' },
+            { key: '/audit-logs', icon: <FileTextOutlined />, label: '审计日志' },
             { key: '/change-password', icon: <KeyOutlined />, label: '修改密码' },
           ]}
         />
