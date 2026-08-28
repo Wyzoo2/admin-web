@@ -133,7 +133,7 @@ const AdminLayout: React.FC = () => {
               onClick={toggleTheme}
               aria-label="切换主题"
             >
-              {isDark ? <SunOutlined /> : <MoonOutlined />}
+              {isDark ? <MoonOutlined /> : <SunOutlined />}
             </button>
           </Tooltip>
           <Dropdown

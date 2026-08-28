@@ -55,6 +55,10 @@ const App: React.FC = () => {
         Drawer: {
           colorBgElevated: isDark ? '#121214' : '#ffffff',
         },
+        Tooltip: {
+          colorBgSpotlight: isDark ? '#2c2c30' : 'rgba(0,0,0,0.82)',
+          colorTextLightSolid: '#ffffff',
+        },
       },
     }),
     [isDark],

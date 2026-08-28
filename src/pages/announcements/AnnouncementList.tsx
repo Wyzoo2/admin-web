@@ -11,6 +11,7 @@ import {
   Space,
   Table,
   Tag,
+  Tooltip,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -117,6 +118,11 @@ const AnnouncementList: React.FC = () => {
       title: '内容',
       dataIndex: 'content',
       ellipsis: true,
+      render: (v: string) => (
+        <Tooltip title={v} mouseEnterDelay={0.3} placement="topLeft">
+          <span>{v}</span>
+        </Tooltip>
+      ),
     },
     {
       title: '优先级',

@@ -99,7 +99,7 @@ const Login: React.FC = () => {
           aria-label="切换主题"
           style={{ position: 'absolute', top: 20, right: 20, width: 36, height: 36 }}
         >
-          {isDark ? <SunOutlined /> : <MoonOutlined />}
+          {isDark ? <MoonOutlined /> : <SunOutlined />}
         </button>
       </Tooltip>
 
