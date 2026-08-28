@@ -35,6 +35,7 @@ const ACTION_OPTIONS = [
   { label: '解散群组', value: 'dissolve_group' },
   { label: '转让群主', value: 'transfer_ownership' },
   { label: '回复反馈', value: 'reply_feedback' },
+  { label: '提交反馈', value: 'submit_feedback' },
   { label: '群主解散', value: 'dissolve_group_by_owner' },
   { label: '发布公告', value: 'publish_announcement' },
   { label: '删除公告', value: 'delete_announcement' },
@@ -202,6 +203,7 @@ const AuditLog: React.FC = () => {
       dissolve_group: 'volcano',
       transfer_ownership: 'geekblue',
       reply_feedback: 'cyan',
+      submit_feedback: 'gold',
       dissolve_group_by_owner: 'volcano',
       publish_announcement: 'purple',
       delete_announcement: 'magenta',
@@ -236,7 +238,7 @@ const AuditLog: React.FC = () => {
     {
       title: '动作',
       dataIndex: 'action',
-      width: 120,
+      width: 150,
       render: (v: string) => renderAction(v),
     },
     {
