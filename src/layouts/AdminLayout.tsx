@@ -5,6 +5,7 @@ import {
   FileTextOutlined,
   KeyOutlined,
   LogoutOutlined,
+  MessageOutlined,
   MoonOutlined,
   NotificationOutlined,
   SunOutlined,
@@ -29,7 +30,9 @@ const AdminLayout: React.FC = () => {
 
   const selectedKey = location.pathname.startsWith('/audit-logs')
     ? '/audit-logs'
-    : location.pathname.startsWith('/change-password')
+    : location.pathname.startsWith('/feedback')
+      ? '/feedback'
+      : location.pathname.startsWith('/change-password')
       ? '/change-password'
       : location.pathname.startsWith('/groups')
         ? '/groups'
@@ -103,6 +106,7 @@ const AdminLayout: React.FC = () => {
             { key: '/accounts', icon: <TeamOutlined />, label: '账号管理' },
             { key: '/groups', icon: <ApartmentOutlined />, label: '群组管理' },
             { key: '/announcements', icon: <NotificationOutlined />, label: '系统公告' },
+            { key: '/feedback', icon: <MessageOutlined />, label: '意见反馈' },
             { key: '/audit-logs', icon: <FileTextOutlined />, label: '审计日志' },
             { key: '/change-password', icon: <KeyOutlined />, label: '修改密码' },
           ]}

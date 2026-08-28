@@ -17,7 +17,6 @@ import {
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
-  ApartmentOutlined,
   DeleteOutlined,
   PlusOutlined,
   ReloadOutlined,
@@ -338,12 +337,7 @@ const GroupList: React.FC = () => {
 
   return (
     <Card
-      title={
-        <Space>
-          <ApartmentOutlined />
-          <span>群组管理</span>
-        </Space>
-      }
+      title="群组管理"
       extra={
         <Space>
           <Button
@@ -404,12 +398,7 @@ const GroupList: React.FC = () => {
 
       {/* 成员管理抽屉 */}
       <Drawer
-        title={
-          <Space>
-            <TeamOutlined />
-            <span>成员管理 · {memberDrawerGroup?.name}</span>
-          </Space>
-        }
+        title={`成员管理 · ${memberDrawerGroup?.name || ''}`}
         width={640}
         open={!!memberDrawerGroup}
         onClose={() => setMemberDrawerGroup(null)}

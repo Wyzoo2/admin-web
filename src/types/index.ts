@@ -235,3 +235,29 @@ export interface AnnouncementCreateBody {
   target_type?: AnnouncementTarget;
   target_departments?: string[];
 }
+
+// ============ 意见反馈 ============
+
+export type FeedbackStatus = 'pending' | 'processed';
+
+export interface FeedbackItem {
+  id: string;
+  user_id: string;
+  content: string;
+  contact: string | null;
+  status: FeedbackStatus;
+  admin_reply: string | null;
+  replied_at: string | null;
+  replied_by: string | null;
+  created_at: string;
+  updated_at: string;
+  /** 管理端补充字段 */
+  user_display_name?: string;
+  user_department?: string | null;
+}
+
+export interface FeedbackListQuery {
+  page?: number;
+  pageSize?: number;
+  status?: FeedbackStatus;
+}
