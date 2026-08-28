@@ -38,6 +38,7 @@ const ACTION_OPTIONS = [
   { label: '群主解散', value: 'dissolve_group_by_owner' },
   { label: '发布公告', value: 'publish_announcement' },
   { label: '删除公告', value: 'delete_announcement' },
+  { label: '账号删除自动解散群', value: 'dissolve_group_on_account_delete' },
 ];
 
 const ACTION_LABEL_MAP: Record<string, string> = Object.fromEntries(
@@ -204,6 +205,7 @@ const AuditLog: React.FC = () => {
       dissolve_group_by_owner: 'volcano',
       publish_announcement: 'purple',
       delete_announcement: 'magenta',
+      dissolve_group_on_account_delete: 'volcano',
     };
     return <Tag color={colorMap[action] || 'default'}>{label}</Tag>;
   };

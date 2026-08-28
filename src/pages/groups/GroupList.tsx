@@ -68,12 +68,6 @@ const GroupList: React.FC = () => {
   const [allUsers, setAllUsers] = useState<SafeUser[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
 
-  // 添加成员
-  const [addMemberOpen, setAddMemberOpen] = useState(false);
-  const [addMemberIds, setAddMemberIds] = useState<string[]>([]);
-  const [adding, setAdding] = useState(false);
-  const [existingMemberIds, setExistingMemberIds] = useState<Set<string>>(new Set());
-
   // 解散
   const [dissolvingId, setDissolvingId] = useState<string | null>(null);
 
@@ -116,7 +110,6 @@ const GroupList: React.FC = () => {
     try {
       const res = await groupApi.members(id);
       setMembers(res || []);
-      setExistingMemberIds(new Set(res.map((m) => m.user_id)));
     } catch (e: any) {
       message.error(e.message || '加载成员失败');
     } finally {
@@ -158,33 +151,6 @@ const GroupList: React.FC = () => {
     }
   };
 
-  const openAddMembers = () => {
-    if (allUsers.length === 0) loadUsers();
-    setAddMemberIds([]);
-    setAddMemberOpen(true);
-  };
-
-  const onAddMembers = async () => {
-    if (!memberDrawerGroup) return;
-    if (addMemberIds.length === 0) {
-      message.warning('请选择要添加的成员');
-      return;
-    }
-    setAdding(true);
-    try {
-      await groupApi.addMembers(memberDrawerGroup.id, addMemberIds);
-      message.success(`已添加 ${addMemberIds.length} 名成员`);
-      setAddMemberOpen(false);
-      setAddMemberIds([]);
-      fetchMembers(memberDrawerGroup.id);
-      fetchList();
-    } catch (e: any) {
-      message.error(e.message || '添加失败');
-    } finally {
-      setAdding(false);
-    }
-  };
-
   const onRemoveMember = async (member: GroupMember) => {
     if (!memberDrawerGroup) return;
     try {
@@ -194,17 +160,6 @@ const GroupList: React.FC = () => {
       fetchList();
     } catch (e: any) {
       message.error(e.message || '移除失败');
-    }
-  };
-
-  const onSetRole = async (member: GroupMember, role: 'admin' | 'member') => {
-    if (!memberDrawerGroup) return;
-    try {
-      await groupApi.setMemberRole(memberDrawerGroup.id, member.user_id, role);
-      message.success(role === 'admin' ? '已设为管理员' : '已取消管理员');
-      fetchMembers(memberDrawerGroup.id);
-    } catch (e: any) {
-      message.error(e.message || '设置失败');
     }
   };
 
@@ -238,34 +193,10 @@ const GroupList: React.FC = () => {
       title: '角色',
       dataIndex: 'role',
       width: 120,
-      render: (v: GroupMember['role'], r) => {
+      render: (v: GroupMember['role']) => {
         if (v === 'owner') return <Tag color="gold">群主</Tag>;
-        if (v === 'admin') {
-          return (
-            <Select
-              size="small"
-              value={v}
-              style={{ width: 110 }}
-              onChange={(val) => onSetRole(r, val)}
-              options={[
-                { label: '管理员', value: 'admin' },
-                { label: '成员', value: 'member' },
-              ]}
-            />
-          );
-        }
-        return (
-          <Select
-            size="small"
-            value={v}
-            style={{ width: 110 }}
-            onChange={(val) => onSetRole(r, val)}
-            options={[
-              { label: '设为管理员', value: 'admin' },
-              { label: '成员', value: 'member' },
-            ]}
-          />
-        );
+        if (v === 'admin') return <Tag color="blue">管理员</Tag>;
+        return <Tag>成员</Tag>;
       },
     },
     {
@@ -482,15 +413,6 @@ const GroupList: React.FC = () => {
         width={640}
         open={!!memberDrawerGroup}
         onClose={() => setMemberDrawerGroup(null)}
-        extra={
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={openAddMembers}
-          >
-            添加成员
-          </Button>
-        }
       >
         <Table<GroupMember>
           rowKey="id"
@@ -501,38 +423,6 @@ const GroupList: React.FC = () => {
           pagination={false}
         />
       </Drawer>
-
-      {/* 添加成员弹框 */}
-      <Modal
-        title="添加成员"
-        open={addMemberOpen}
-        onOk={onAddMembers}
-        confirmLoading={adding}
-        onCancel={() => setAddMemberOpen(false)}
-        okText="添加"
-        cancelText="取消"
-        destroyOnHidden
-      >
-        <Select
-          mode="multiple"
-          placeholder="搜索并选择成员（姓名/手机号）"
-          style={{ width: '100%', marginTop: 16 }}
-          value={addMemberIds}
-          onChange={setAddMemberIds}
-          loading={loadingUsers}
-          showSearch
-          optionFilterProp="label"
-          options={allUsers
-            .filter(
-              (u) =>
-                u.status === 'active' && !existingMemberIds.has(u.id),
-            )
-            .map((u) => ({
-              label: `${u.display_name}（${u.phone}）`,
-              value: u.id,
-            }))}
-        />
-      </Modal>
 
       {/* 创建群组弹框 */}
       <Modal
