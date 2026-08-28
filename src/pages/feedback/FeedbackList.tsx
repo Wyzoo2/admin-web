@@ -60,7 +60,7 @@ const FeedbackList: React.FC = () => {
   const openReply = (record: FeedbackItem) => {
     setCurrent(record);
     replyForm.setFieldsValue({
-      admin_reply: record.admin_reply || '',
+      reply: record.admin_reply || '',
     });
     setReplyOpen(true);
   };
@@ -262,7 +262,7 @@ const FeedbackList: React.FC = () => {
         )}
         <Form form={replyForm} layout="vertical">
           <Form.Item
-            name="admin_reply"
+            name="reply"
             label="回复内容"
             rules={[{ required: true, message: '请输入回复内容' }]}
           >
