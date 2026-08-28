@@ -128,6 +128,23 @@ body {
 .ant-table-tbody > tr.ant-table-row-selected > td {
   background: var(--accent-soft) !important;
 }
+/* 固定列单元格：必须不透明，否则横向滚动时底层内容会透出重叠 */
+.ant-table-thead > tr > th.ant-table-cell-fix-left,
+.ant-table-thead > tr > th.ant-table-cell-fix-right {
+  background: var(--surface-alt) !important;
+}
+.ant-table-tbody > tr > td.ant-table-cell-fix-left,
+.ant-table-tbody > tr > td.ant-table-cell-fix-right {
+  background: var(--surface) !important;
+}
+.ant-table-tbody > tr:hover > td.ant-table-cell-fix-left,
+.ant-table-tbody > tr:hover > td.ant-table-cell-fix-right {
+  background: var(--surface-hover) !important;
+}
+.ant-table-tbody > tr.ant-table-row-selected > td.ant-table-cell-fix-left,
+.ant-table-tbody > tr.ant-table-row-selected > td.ant-table-cell-fix-right {
+  background: var(--accent-soft) !important;
+}
 
 /* ---------- 菜单 ---------- */
 .ant-menu {

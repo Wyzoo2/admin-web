@@ -30,7 +30,14 @@ const ACTION_OPTIONS = [
   { label: '重置密码', value: 'reset_password' },
   { label: '启用账号', value: 'enable_account' },
   { label: '停用账号', value: 'disable_account' },
+  { label: '注销账号', value: 'delete_account' },
   { label: '下线设备', value: 'remove_device' },
+  { label: '解散群组', value: 'dissolve_group' },
+  { label: '转让群主', value: 'transfer_ownership' },
+  { label: '回复反馈', value: 'reply_feedback' },
+  { label: '群主解散', value: 'dissolve_group_by_owner' },
+  { label: '发布公告', value: 'publish_announcement' },
+  { label: '删除公告', value: 'delete_announcement' },
 ];
 
 const ACTION_LABEL_MAP: Record<string, string> = Object.fromEntries(
@@ -41,6 +48,10 @@ const TARGET_TYPE_LABEL: Record<string, string> = {
   user: '用户',
   device: '设备',
   account: '账号',
+  group: '群组',
+  conversation: '会话',
+  feedback: '反馈',
+  announcement: '公告',
 };
 
 interface Filters {
@@ -185,7 +196,14 @@ const AuditLog: React.FC = () => {
       reset_password: 'orange',
       enable_account: 'green',
       disable_account: 'red',
+      delete_account: 'red',
       remove_device: 'red',
+      dissolve_group: 'volcano',
+      transfer_ownership: 'geekblue',
+      reply_feedback: 'cyan',
+      dissolve_group_by_owner: 'volcano',
+      publish_announcement: 'purple',
+      delete_announcement: 'magenta',
     };
     return <Tag color={colorMap[action] || 'default'}>{label}</Tag>;
   };
@@ -303,6 +321,10 @@ const AuditLog: React.FC = () => {
             options={[
               { label: '用户', value: 'user' },
               { label: '设备', value: 'device' },
+              { label: '群组', value: 'group' },
+              { label: '会话', value: 'conversation' },
+              { label: '反馈', value: 'feedback' },
+              { label: '公告', value: 'announcement' },
             ]}
           />
         </Form.Item>

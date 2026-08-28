@@ -1,8 +1,11 @@
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom';
 import AdminLayout from '../layouts/AdminLayout';
 import Login from '../pages/login/Login';
+import Dashboard from '../pages/dashboard/Dashboard';
 import AccountList from '../pages/accounts/AccountList';
 import AuditLog from '../pages/audit/AuditLog';
+import GroupList from '../pages/groups/GroupList';
+import AnnouncementList from '../pages/announcements/AnnouncementList';
 import ChangePassword from '../pages/profile/ChangePassword';
 import { tokenStore } from '../api/request';
 
@@ -36,9 +39,12 @@ export const router = createBrowserRouter([
         // 通过守卫后挂载后台整体布局（侧边菜单 + 顶栏），子页面渲染在其 <Outlet /> 中
         element: <AdminLayout />,
         children: [
-          // 根路径默认跳转到账号管理页
-          { path: '/', element: <Navigate to="/accounts" replace /> },
+          // 根路径默认跳转到仪表盘
+          { path: '/', element: <Navigate to="/dashboard" replace /> },
+          { path: '/dashboard', element: <Dashboard /> },
           { path: '/accounts', element: <AccountList /> },
+          { path: '/groups', element: <GroupList /> },
+          { path: '/announcements', element: <AnnouncementList /> },
           { path: '/audit-logs', element: <AuditLog /> },
           { path: '/change-password', element: <ChangePassword /> },
         ],

@@ -136,3 +136,102 @@ export interface AuditLogQuery {
   end_time?: string;
   keyword?: string;
 }
+
+// ============ Dashboard 统计 ============
+
+export interface StorageInfo {
+  upload_bytes: number;
+  upload_files: number;
+  db_bytes: number;
+  total_bytes: number;
+}
+
+export interface StatsOverview {
+  total_users: number;
+  disabled_users: number;
+  deleted_users: number;
+  today_active_users: number;
+  today_messages: number;
+  total_messages: number;
+  total_conversations: number;
+  total_groups: number;
+  online_devices: number;
+  storage: StorageInfo;
+  generated_at: string;
+}
+
+// ============ 群组/频道 ============
+
+export type GroupRole = 'owner' | 'admin' | 'member';
+
+export interface GroupMember {
+  id: string;
+  conversation_id: string;
+  user_id: string;
+  role: GroupRole;
+  muted?: boolean;
+  joined_at: string;
+  user_display_name?: string;
+  user_avatar_url?: string | null;
+  user_phone?: string;
+  user_department?: string | null;
+}
+
+export interface GroupInfo {
+  id: string;
+  type: 'private' | 'group' | 'channel';
+  name: string | null;
+  description: string | null;
+  avatar_url: string | null;
+  owner_id: string | null;
+  is_channel: boolean;
+  member_count: number;
+  last_message_at: string | null;
+  dissolved_at: string | null;
+  dissolved_by: string | null;
+  created_at: string;
+  updated_at: string;
+  /** 管理端列表补充字段 */
+  owner_display_name?: string;
+  owner_phone?: string;
+  is_dissolved?: boolean;
+}
+
+export interface GroupCreateBody {
+  name: string;
+  description?: string;
+  is_channel?: boolean;
+  member_ids?: string[];
+}
+
+export interface GroupUpdateBody {
+  name?: string;
+  description?: string;
+  avatar_url?: string;
+}
+
+// ============ 系统公告 ============
+
+export type AnnouncementPriority = 'normal' | 'urgent';
+export type AnnouncementTarget = 'all' | 'department';
+
+export interface Announcement {
+  id: string;
+  title: string;
+  content: string;
+  priority: AnnouncementPriority;
+  target_type: AnnouncementTarget;
+  target_departments: string[] | null;
+  created_by: string;
+  read_count?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AnnouncementCreateBody {
+  title: string;
+  content: string;
+  priority?: AnnouncementPriority;
+  target_type?: AnnouncementTarget;
+  target_departments?: string[];
+}

@@ -49,4 +49,7 @@ export const accountApi = {
   /** 启用/停用账号；停用时删除该账号全部设备记录（全端强制下线） */
   toggleStatus: (id: string, status: UserStatus) =>
     request.post<unknown, null>(`/accounts/${id}/toggle-status`, { status }),
+
+  /** 软删除账号：立即吊销全部 token 并强制下线，历史消息保留 */
+  remove: (id: string) => request.delete<unknown, null>(`/accounts/${id}`),
 };

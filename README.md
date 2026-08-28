@@ -48,7 +48,7 @@ npm run dev
 编辑 `.env`：
 
 ```
-VITE_API_BASE_URL=http://192.168.9.118:9091/api/v1
+VITE_API_BASE_URL=http://192.168.9.116:9091/api/v1
 ```
 
 修改后需重启 `npm run dev` 生效。

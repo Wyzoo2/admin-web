@@ -13,6 +13,7 @@ import {
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
+  DeleteOutlined,
   DownloadOutlined,
   PlusOutlined,
   ReloadOutlined,
@@ -105,6 +106,17 @@ const AccountList: React.FC = () => {
       fetchList();
     } catch (e: any) {
       message.error(e.message || '操作失败');
+    }
+  };
+
+  const onDelete = async (record: SafeUser) => {
+    try {
+      await accountApi.remove(record.id);
+      message.success('账号已注销，全端已强制下线');
+      fetchList();
+      fetchDepartments();
+    } catch (e: any) {
+      message.error(e.message || '删除失败');
     }
   };
 
@@ -210,7 +222,7 @@ const AccountList: React.FC = () => {
     {
       title: '操作',
       key: 'actions',
-      width: 260,
+      width: 320,
       fixed: 'right',
       render: (_, record) => (
         <Space size="small">
@@ -233,6 +245,18 @@ const AccountList: React.FC = () => {
           >
             <Button type="link" size="small">
               {record.status === 'active' ? '停用' : '启用'}
+            </Button>
+          </Popconfirm>
+          <Popconfirm
+            title="确认注销该账号？"
+            description="注销后该账号全部 token 立即吊销并强制下线，历史消息保留且不可恢复。"
+            okText="确认注销"
+            okButtonProps={{ danger: true }}
+            cancelText="取消"
+            onConfirm={() => onDelete(record)}
+          >
+            <Button type="link" size="small" danger  >
+              注销
             </Button>
           </Popconfirm>
         </Space>
@@ -315,7 +339,7 @@ const AccountList: React.FC = () => {
         columns={columns}
         dataSource={data}
         loading={loading}
-        scroll={{ x: 1100 }}
+        scroll={{ x: 1200 }}
         pagination={{
           current: page,
           pageSize,

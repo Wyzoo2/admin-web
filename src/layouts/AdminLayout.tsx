@@ -1,9 +1,12 @@
 import { App, Avatar, Dropdown, Layout, Menu, Tooltip } from 'antd';
 import {
+  ApartmentOutlined,
+  DashboardOutlined,
   FileTextOutlined,
   KeyOutlined,
   LogoutOutlined,
   MoonOutlined,
+  NotificationOutlined,
   SunOutlined,
   TeamOutlined,
   UserOutlined,
@@ -28,7 +31,13 @@ const AdminLayout: React.FC = () => {
     ? '/audit-logs'
     : location.pathname.startsWith('/change-password')
       ? '/change-password'
-      : '/accounts';
+      : location.pathname.startsWith('/groups')
+        ? '/groups'
+        : location.pathname.startsWith('/announcements')
+          ? '/announcements'
+          : location.pathname.startsWith('/accounts')
+            ? '/accounts'
+            : '/dashboard';
 
   const handleLogout = () => {
     logout();
@@ -90,7 +99,10 @@ const AdminLayout: React.FC = () => {
           onClick={({ key }) => navigate(key)}
           style={{ background: 'transparent', border: 'none', padding: '10px 0' }}
           items={[
+            { key: '/dashboard', icon: <DashboardOutlined />, label: '仪表盘' },
             { key: '/accounts', icon: <TeamOutlined />, label: '账号管理' },
+            { key: '/groups', icon: <ApartmentOutlined />, label: '群组管理' },
+            { key: '/announcements', icon: <NotificationOutlined />, label: '系统公告' },
             { key: '/audit-logs', icon: <FileTextOutlined />, label: '审计日志' },
             { key: '/change-password', icon: <KeyOutlined />, label: '修改密码' },
           ]}
