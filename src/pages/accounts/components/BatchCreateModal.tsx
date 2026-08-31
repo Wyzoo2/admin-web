@@ -126,7 +126,7 @@ const BatchCreateModal: React.FC<Props> = ({
                       <Button
                         type="text"
                         danger
-                         
+                        icon={<DeleteOutlined />}
                         disabled={fields.length <= 1}
                         onClick={() => remove(field.name)}
                       />
