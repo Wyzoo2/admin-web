@@ -261,3 +261,48 @@ export interface FeedbackListQuery {
   pageSize?: number;
   status?: FeedbackStatus;
 }
+
+// ============ App 版本管理 ============
+
+export type AppPlatform = 'android' | 'ios';
+
+export interface AppVersion {
+  id: string;
+  platform: AppPlatform;
+  version_code: number;
+  version_name: string;
+  apk_url: string;
+  file_size: number;
+  force: boolean;
+  notes: string | null;
+  published: boolean;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AppVersionLatest {
+  platform: AppPlatform;
+  version_code: number;
+  version_name: string;
+  apk_url: string;
+  file_size: number;
+  force: boolean;
+  notes: string | null;
+  published_at: string;
+}
+
+export interface VersionPublishBody {
+  file: File;
+  platform?: AppPlatform;
+  version_name: string;
+  version_code: number;
+  force?: boolean;
+  notes?: string;
+}
+
+export interface VersionPatchBody {
+  force?: boolean;
+  notes?: string;
+  published?: boolean;
+}

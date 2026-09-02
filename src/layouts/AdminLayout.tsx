@@ -1,6 +1,7 @@
 import { App, Avatar, Dropdown, Layout, Menu, Tooltip } from 'antd';
 import {
   ApartmentOutlined,
+  CloudUploadOutlined,
   DashboardOutlined,
   FileTextOutlined,
   KeyOutlined,
@@ -30,8 +31,10 @@ const AdminLayout: React.FC = () => {
 
   const selectedKey = location.pathname.startsWith('/audit-logs')
     ? '/audit-logs'
-    : location.pathname.startsWith('/feedback')
-      ? '/feedback'
+    : location.pathname.startsWith('/versions')
+      ? '/versions'
+      : location.pathname.startsWith('/feedback')
+        ? '/feedback'
       : location.pathname.startsWith('/change-password')
       ? '/change-password'
       : location.pathname.startsWith('/groups')
@@ -107,6 +110,7 @@ const AdminLayout: React.FC = () => {
             { key: '/groups', icon: <ApartmentOutlined />, label: '群组管理' },
             { key: '/announcements', icon: <NotificationOutlined />, label: '系统公告' },
             { key: '/feedback', icon: <MessageOutlined />, label: '意见反馈' },
+            { key: '/versions', icon: <CloudUploadOutlined />, label: '版本管理' },
             { key: '/audit-logs', icon: <FileTextOutlined />, label: '审计日志' },
             { key: '/change-password', icon: <KeyOutlined />, label: '修改密码' },
           ]}

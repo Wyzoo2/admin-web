@@ -7,6 +7,7 @@ import AuditLog from '../pages/audit/AuditLog';
 import GroupList from '../pages/groups/GroupList';
 import AnnouncementList from '../pages/announcements/AnnouncementList';
 import FeedbackList from '../pages/feedback/FeedbackList';
+import VersionManagement from '../pages/versions/VersionManagement';
 import ChangePassword from '../pages/profile/ChangePassword';
 import { tokenStore } from '../api/request';
 
@@ -47,6 +48,7 @@ export const router = createBrowserRouter([
           { path: '/groups', element: <GroupList /> },
           { path: '/announcements', element: <AnnouncementList /> },
           { path: '/feedback', element: <FeedbackList /> },
+          { path: '/versions', element: <VersionManagement /> },
           { path: '/audit-logs', element: <AuditLog /> },
           { path: '/change-password', element: <ChangePassword /> },
         ],
