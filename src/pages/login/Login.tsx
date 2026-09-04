@@ -5,11 +5,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/auth';
 import { useThemeStore } from '../../store/theme';
 
-/** 默认登录账号（可在下方表单中直接修改） */
-const DEFAULT_ACCOUNT = {
-  phone: '13800000000',
-  password: '123456',
-};
+
+
+
+
+
 
 const REMEMBER_KEY = 'burnmsg_remembered_account';
 
@@ -26,7 +26,7 @@ function loadRemembered(): Partial<LoginFormValues> {
   } catch {
     /* ignore */
   }
-  return { ...DEFAULT_ACCOUNT, remember: true };
+  return { phone: '', password: '', remember: false };
 }
 
 const Login: React.FC = () => {

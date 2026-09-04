@@ -110,7 +110,10 @@ export type AuditAction =
   | 'reset_password'
   | 'enable_account'
   | 'disable_account'
-  | 'remove_device';
+  | 'remove_device'
+  | 'update_app_version'
+  | 'publish_app_version'
+  | 'delete_app_version';
 
 export interface AuditLogItem {
   id: string;

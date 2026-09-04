@@ -1,7 +1,7 @@
 import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 
 const BASE_URL: string =
-  import.meta.env.VITE_API_BASE_URL || 'http://192.168.9.253:9091/api/v1';
+  import.meta.env.VITE_API_BASE_URL || 'http://47.114.38.126:9091/api/v1';
 
 const ACCESS_KEY = 'burnmsg_access_token';
 const REFRESH_KEY = 'burnmsg_refresh_token';

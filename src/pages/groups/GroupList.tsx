@@ -38,7 +38,7 @@ const { TextArea } = Input;
 const resolveAsset = (url: string | null | undefined): string | undefined => {
   if (!url) return undefined;
   if (/^https?:\/\//i.test(url)) return url;
-  const base = import.meta.env.VITE_API_BASE_URL || 'http://192.168.9.253:9091/api/v1';
+  const base = import.meta.env.VITE_API_BASE_URL || 'http://47.114.38.126:9091/api/v1';
   const origin = base.replace(/\/api\/v\d+\/?$/, '');
   return origin + (url.startsWith('/') ? url : '/' + url);
 };

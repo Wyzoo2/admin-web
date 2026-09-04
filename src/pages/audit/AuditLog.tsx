@@ -40,6 +40,9 @@ const ACTION_OPTIONS = [
   { label: '发布公告', value: 'publish_announcement' },
   { label: '删除公告', value: 'delete_announcement' },
   { label: '账号删除自动解散群', value: 'dissolve_group_on_account_delete' },
+  { label: '更新App版本', value: 'update_app_version' },
+  { label: '发布App版本', value: 'publish_app_version' },
+  { label: '删除App版本', value: 'delete_app_version' },
 ];
 
 const ACTION_LABEL_MAP: Record<string, string> = Object.fromEntries(
@@ -54,6 +57,7 @@ const TARGET_TYPE_LABEL: Record<string, string> = {
   conversation: '会话',
   feedback: '反馈',
   announcement: '公告',
+  app_version: 'App版本',
 };
 
 interface Filters {
