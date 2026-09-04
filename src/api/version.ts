@@ -20,7 +20,7 @@ export const versionApi = {
     fd.append('version_name', body.version_name);
     fd.append('version_code', String(body.version_code));
     if (body.platform) fd.append('platform', body.platform);
-    if (body.force !== undefined) fd.append('force', String(body.force));
+    if (body.force) fd.append('force', 'true');
     if (body.notes) fd.append('notes', body.notes);
     return request.post<unknown, AppVersion>('/app-versions', fd);
   },
