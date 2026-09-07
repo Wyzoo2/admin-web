@@ -133,7 +133,7 @@ const GroupList: React.FC = () => {
       const body: GroupCreateBody = {
         name: values.name,
         description: values.description,
-        is_channel: values.is_channel ?? false,
+        is_channel: false,
         member_ids: values.member_ids || [],
       };
       await groupApi.create(body);
@@ -415,7 +415,7 @@ const GroupList: React.FC = () => {
 
       {/* 创建群组弹框 */}
       <Modal
-        title="创建群组/频道"
+        title="创建群组"
         open={createOpen}
         onOk={onCreateGroup}
         confirmLoading={creating}
@@ -438,14 +438,6 @@ const GroupList: React.FC = () => {
           </Form.Item>
           <Form.Item name="description" label="群简介">
             <TextArea rows={3} maxLength={500} showCount placeholder="可选" />
-          </Form.Item>
-          <Form.Item name="is_channel" label="类型" initialValue={false}>
-            <Select
-              options={[
-                { label: '群组', value: false },
-                { label: '频道', value: true },
-              ]}
-            />
           </Form.Item>
           <Form.Item name="member_ids" label="初始成员">
             <Select
