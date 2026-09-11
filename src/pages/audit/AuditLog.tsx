@@ -43,6 +43,7 @@ const ACTION_OPTIONS = [
   { label: '更新App版本', value: 'update_app_version' },
   { label: '发布App版本', value: 'publish_app_version' },
   { label: '删除App版本', value: 'delete_app_version' },
+  { label: '解散频道', value: 'dissolve_channel_by_owner' },
 ];
 
 const ACTION_LABEL_MAP: Record<string, string> = Object.fromEntries(

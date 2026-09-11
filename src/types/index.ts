@@ -113,7 +113,9 @@ export type AuditAction =
   | 'remove_device'
   | 'update_app_version'
   | 'publish_app_version'
-  | 'delete_app_version';
+  | 'delete_app_version'
+  | 'dissolve_channel_by_owner';
+
 
 export interface AuditLogItem {
   id: string;
