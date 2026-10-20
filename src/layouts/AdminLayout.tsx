@@ -1,14 +1,19 @@
 import { App, Avatar, Dropdown, Layout, Menu, Tooltip } from 'antd';
 import {
   ApartmentOutlined,
+  BarChartOutlined,
   CloudUploadOutlined,
+  CommentOutlined,
   DashboardOutlined,
+  DesktopOutlined,
   FileTextOutlined,
+  FireOutlined,
   KeyOutlined,
   LogoutOutlined,
   MessageOutlined,
   MoonOutlined,
   NotificationOutlined,
+  SettingOutlined,
   SunOutlined,
   TeamOutlined,
   UserOutlined,
@@ -18,6 +23,25 @@ import { useAuthStore } from '../store/auth';
 import { useThemeStore } from '../store/theme';
 
 const { Header, Sider, Content } = Layout;
+
+/**
+ * 菜单 key 表，按「最长前缀优先」排序：
+ * 前面是更长的路径前缀（如 /settings/retention），保证先于其它前缀命中。
+ */
+const MENU_KEYS = [
+  '/settings/retention',
+  '/destroy-records',
+  '/read-stats',
+  '/presence',
+  '/messages',
+  '/accounts',
+  '/groups',
+  '/announcements',
+  '/feedback',
+  '/versions',
+  '/audit-logs',
+  '/change-password',
+] as const;
 
 const AdminLayout: React.FC = () => {
   const navigate = useNavigate();
@@ -29,21 +53,10 @@ const AdminLayout: React.FC = () => {
   const toggleTheme = useThemeStore((s) => s.toggle);
   const isDark = mode === 'dark';
 
-  const selectedKey = location.pathname.startsWith('/audit-logs')
-    ? '/audit-logs'
-    : location.pathname.startsWith('/versions')
-      ? '/versions'
-      : location.pathname.startsWith('/feedback')
-        ? '/feedback'
-      : location.pathname.startsWith('/change-password')
-      ? '/change-password'
-      : location.pathname.startsWith('/groups')
-        ? '/groups'
-        : location.pathname.startsWith('/announcements')
-          ? '/announcements'
-          : location.pathname.startsWith('/accounts')
-            ? '/accounts'
-            : '/dashboard';
+  const selectedKey: string =
+    MENU_KEYS.find(
+      (k) => location.pathname === k || location.pathname.startsWith(k + '/'),
+    ) ?? '/dashboard';
 
   const handleLogout = () => {
     logout();
@@ -107,11 +120,16 @@ const AdminLayout: React.FC = () => {
           items={[
             { key: '/dashboard', icon: <DashboardOutlined />, label: '仪表盘' },
             { key: '/accounts', icon: <TeamOutlined />, label: '账号管理' },
+            { key: '/messages', icon: <CommentOutlined />, label: '消息管理' },
+            { key: '/destroy-records', icon: <FireOutlined />, label: '焚毁记录' },
+            { key: '/read-stats', icon: <BarChartOutlined />, label: '已读统计' },
+            { key: '/presence', icon: <DesktopOutlined />, label: '在线监控' },
             { key: '/groups', icon: <ApartmentOutlined />, label: '群组管理' },
             { key: '/announcements', icon: <NotificationOutlined />, label: '系统公告' },
             { key: '/feedback', icon: <MessageOutlined />, label: '意见反馈' },
             { key: '/versions', icon: <CloudUploadOutlined />, label: '版本管理' },
             { key: '/audit-logs', icon: <FileTextOutlined />, label: '审计日志' },
+            { key: '/settings/retention', icon: <SettingOutlined />, label: '系统设置' },
             { key: '/change-password', icon: <KeyOutlined />, label: '修改密码' },
           ]}
         />

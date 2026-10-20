@@ -113,6 +113,7 @@ const ChangePassword: React.FC = () => {
               size="large"
               prefix={<LockOutlined className="cp-prefix-icon" />}
               placeholder="请输入原密码"
+              autoComplete="current-password"
             />
           </Form.Item>
 
@@ -128,6 +129,7 @@ const ChangePassword: React.FC = () => {
               size="large"
               prefix={<LockOutlined className="cp-prefix-icon" />}
               placeholder="至少 8 位，含字母和数字"
+              autoComplete="new-password"
             />
           </Form.Item>
 
@@ -181,6 +183,7 @@ const ChangePassword: React.FC = () => {
               size="large"
               prefix={<LockOutlined className="cp-prefix-icon" />}
               placeholder="再次输入新密码"
+              autoComplete="new-password"
             />
           </Form.Item>
 

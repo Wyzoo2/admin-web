@@ -24,6 +24,8 @@ const { Text } = Typography;
 
 const ACTION_OPTIONS = [
   { label: '登录', value: 'login' },
+  { label: '设备限制已超出', value: 'device_limit_exceeded' },
+  { label: '新登录踢下线', value: 'session_kicked_by_new_login' },
   { label: '修改密码', value: 'change_password' },
   { label: '开通账号', value: 'create_account' },
   { label: '批量导入账号', value: 'batch_import_accounts' },
@@ -44,6 +46,8 @@ const ACTION_OPTIONS = [
   { label: '发布App版本', value: 'publish_app_version' },
   { label: '删除App版本', value: 'delete_app_version' },
   { label: '解散频道', value: 'dissolve_channel_by_owner' },
+  { label: '手动焚毁消息', value: 'admin_manual_destroy_message' },
+  { label: '强制下线设备', value: 'admin_force_offline_device' },
 ];
 
 const ACTION_LABEL_MAP: Record<string, string> = Object.fromEntries(
@@ -197,6 +201,8 @@ const AuditLog: React.FC = () => {
     const label = ACTION_LABEL_MAP[action] || action;
     const colorMap: Record<string, string> = {
       login: 'blue',
+      device_limit_exceeded: 'orange',
+      session_kicked_by_new_login: 'gold',
       change_password: 'orange',
       create_account: 'green',
       batch_import_accounts: 'green',
@@ -213,6 +219,9 @@ const AuditLog: React.FC = () => {
       publish_announcement: 'purple',
       delete_announcement: 'magenta',
       dissolve_group_on_account_delete: 'volcano',
+      // 管理端写操作：红色表示不可逆
+      admin_manual_destroy_message: 'red',
+      admin_force_offline_device: 'red',
     };
     return <Tag color={colorMap[action] || 'default'}>{label}</Tag>;
   };

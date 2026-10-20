@@ -163,6 +163,12 @@ export interface StatsOverview {
   online_devices: number;
   storage: StorageInfo;
   generated_at: string;
+  /** V6.0 新增：真实在线用户数 */
+  online_users?: number;
+  /** V6.0 新增：今日焚毁消息数 */
+  today_destroyed?: number;
+  /** V6.0：已标记焚毁但尚未真删的消息数 */
+  pending_purge?: number;
 }
 
 // ============ 群组/频道 ============

@@ -3,6 +3,11 @@ import AdminLayout from '../layouts/AdminLayout';
 import Login from '../pages/login/Login';
 import Dashboard from '../pages/dashboard/Dashboard';
 import AccountList from '../pages/accounts/AccountList';
+import MessageList from '../pages/messages/MessageList';
+import DestroyRecordList from '../pages/destroy-records/DestroyRecordList';
+import ReadStats from '../pages/read-stats/ReadStats';
+import PresenceMonitor from '../pages/presence/PresenceMonitor';
+import RetentionSettings from '../pages/settings/RetentionSettings';
 import AuditLog from '../pages/audit/AuditLog';
 import GroupList from '../pages/groups/GroupList';
 import AnnouncementList from '../pages/announcements/AnnouncementList';
@@ -45,11 +50,16 @@ export const router = createBrowserRouter([
           { path: '/', element: <Navigate to="/dashboard" replace /> },
           { path: '/dashboard', element: <Dashboard /> },
           { path: '/accounts', element: <AccountList /> },
+          { path: '/messages', element: <MessageList /> },
+          { path: '/destroy-records', element: <DestroyRecordList /> },
+          { path: '/read-stats', element: <ReadStats /> },
+          { path: '/presence', element: <PresenceMonitor /> },
           { path: '/groups', element: <GroupList /> },
           { path: '/announcements', element: <AnnouncementList /> },
           { path: '/feedback', element: <FeedbackList /> },
           { path: '/versions', element: <VersionManagement /> },
           { path: '/audit-logs', element: <AuditLog /> },
+          { path: '/settings/retention', element: <RetentionSettings /> },
           { path: '/change-password', element: <ChangePassword /> },
         ],
       },
@@ -57,4 +67,16 @@ export const router = createBrowserRouter([
   },
   // 兜底：未匹配路径回到根路径（再由根路径决定是否跳登录页）
   { path: '*', element: <Navigate to="/" replace /> },
-]);
+],
+// 提前启用 v7 行为标志：不开启时 React Router 会在控制台打印升级提示。
+// 本应用没有 loader/action/fetcher 与 splat 子路由，这些标志只改变内部实现，
+// 不改变现有 8+5 条路由的匹配与重定向语义。
+{
+  future: {
+    v7_fetcherPersist: true,
+    v7_normalizeFormMethod: true,
+    v7_partialHydration: true,
+    v7_relativeSplatPath: true,
+    v7_skipActionErrorRevalidation: true,
+  },
+});

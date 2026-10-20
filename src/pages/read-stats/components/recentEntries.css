@@ -1,0 +1,30 @@
+/*
+ * 已读统计页的快捷入口标签。
+ * 只用主题变量着色：CheckableTag 默认是无边框文字样式，加一层浅描边才像「可点的条目」，
+ * 同时保留 AntD 的 checked / hover 语义，暗色主题下自动跟随 --surface / --accent-soft。
+ */
+.recent-tag.ant-tag-checkable {
+  margin-inline-end: 0;
+  padding: 2px 10px;
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--text-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.recent-tag.ant-tag-checkable:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+  border-color: var(--border);
+}
+
+.recent-tag.ant-tag-checkable-checked,
+.recent-tag.ant-tag-checkable-checked:hover {
+  color: var(--text);
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}

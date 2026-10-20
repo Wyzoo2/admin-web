@@ -67,7 +67,7 @@ const App: React.FC = () => {
   return (
     <ConfigProvider locale={zhCN} theme={themeConfig}>
       <AntdApp>
-        <RouterProvider router={router} />
+        <RouterProvider router={router} future={{ v7_startTransition: true }} />
       </AntdApp>
     </ConfigProvider>
   );

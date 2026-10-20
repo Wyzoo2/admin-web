@@ -230,6 +230,7 @@ const Login: React.FC = () => {
                 prefix={<PhoneOutlined style={{ color: 'var(--text-3)' }} />}
                 placeholder="手机号即用户名"
                 maxLength={11}
+                autoComplete="username"
               />
             </Form.Item>
             <Form.Item
@@ -241,6 +242,7 @@ const Login: React.FC = () => {
                 size="large"
                 prefix={<LockOutlined style={{ color: 'var(--text-3)' }} />}
                 placeholder="请输入密码"
+                autoComplete="current-password"
               />
             </Form.Item>
             <Form.Item name="remember" valuePropName="checked">
