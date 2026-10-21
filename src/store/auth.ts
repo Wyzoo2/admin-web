@@ -5,6 +5,7 @@ import type { LoginResponse, SafeUser } from '../types';
 
 const USER_KEY = 'burnmsg_user';
 const DEVICE_ID_KEY = 'burnmsg_device_id';
+const DEVICE_RECORD_KEY = 'burnmsg_device_record_id';
 
 function loadUser(): SafeUser | null {
   try {
@@ -22,6 +23,11 @@ interface AuthState {
    * 仅用于在线监控判断「这一行是不是本机」，从而禁止下线自己。
    */
   deviceId: string | null;
+  /**
+   * 当前登录设备的**记录 id**（登录响应 device.id），心跳接口用它。
+   * 与 deviceId（设备指纹）不同：前者是后端 devices 表主键，后者是终端指纹。
+   */
+  deviceRecordId: string | null;
   login: (body: LoginBody) => Promise<LoginResponse>;
   logout: () => void;
   setUser: (u: SafeUser | null) => void;
@@ -30,13 +36,19 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set) => ({
   user: loadUser(),
   deviceId: localStorage.getItem(DEVICE_ID_KEY),
+  deviceRecordId: localStorage.getItem(DEVICE_RECORD_KEY),
 
   login: async (body) => {
     const res = await authApi.login(body);
     tokenStore.set(res.access_token, res.refresh_token);
     localStorage.setItem(USER_KEY, JSON.stringify(res.user));
     localStorage.setItem(DEVICE_ID_KEY, res.device.device_id);
-    set({ user: res.user, deviceId: res.device.device_id });
+    localStorage.setItem(DEVICE_RECORD_KEY, res.device.id);
+    set({
+      user: res.user,
+      deviceId: res.device.device_id,
+      deviceRecordId: res.device.id,
+    });
     return res;
   },
 
@@ -44,7 +56,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     tokenStore.clear();
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem(DEVICE_ID_KEY);
-    set({ user: null, deviceId: null });
+    localStorage.removeItem(DEVICE_RECORD_KEY);
+    set({ user: null, deviceId: null, deviceRecordId: null });
   },
 
   setUser: (u) => {

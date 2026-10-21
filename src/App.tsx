@@ -4,10 +4,14 @@ import zhCN from 'antd/locale/zh_CN';
 import { RouterProvider } from 'react-router-dom';
 import { router } from './router';
 import { useThemeStore } from './store/theme';
+import { useHeartbeat } from './hooks/useHeartbeat';
 
 const App: React.FC = () => {
   const mode = useThemeStore((s) => s.mode);
   const isDark = mode === 'dark';
+
+  // 设备心跳：登录后每 60s 上报一次，避免管理后台被判离线、最后活跃时间不刷新
+  useHeartbeat();
 
   // AntD 主题令牌：浅色走 Notion 温润白，深色走 Linear 深炭；主色统一为当前前景色
   const themeConfig = useMemo(

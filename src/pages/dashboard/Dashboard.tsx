@@ -5,21 +5,17 @@ import {
   DatabaseOutlined,
   FileDoneOutlined,
   FireOutlined,
-  InfoCircleOutlined,
   ReloadOutlined,
   TeamOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import { destroyRecordApi } from '../../api/admin';
+import { adminStatsApi } from '../../api/admin';
 import { statsApi } from '../../api/stats';
-import type { DestroyRecord } from '../../types/admin';
+import type { BurnOverview } from '../../types/admin';
 import type { StatsOverview } from '../../types';
 
 /** 缺失值统一占位符 */
 const NA = '—';
-
-/** 焚毁原因分布单次统计上限：数据量更大时只覆盖当日前 N 条流水 */
-const FLOW_PAGE_SIZE = 100;
 
 function isNum(v: unknown): v is number {
   return typeof v === 'number' && Number.isFinite(v);
@@ -161,82 +157,60 @@ const Dashboard: React.FC = () => {
   const [data, setData] = useState<StatsOverview | null>(null);
   const [loading, setLoading] = useState(false);
 
-  /** 今日销毁流水：焚毁原因分布与平均存活时长都由这一批真实流水在前端聚合 */
-  const [records, setRecords] = useState<DestroyRecord[]>([]);
-  const [recordsTotal, setRecordsTotal] = useState(0);
-  const [recordsLoading, setRecordsLoading] = useState(false);
-  const [recordsError, setRecordsError] = useState<string | null>(null);
+  /** 焚毁概览（GET /admin/stats/burn-overview）：原因分布与平均存活时长由后端算好 */
+  const [burn, setBurn] = useState<BurnOverview | null>(null);
+  const [burnLoading, setBurnLoading] = useState(false);
+  const [burnError, setBurnError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const res = await statsApi.overview();
       setData(res);
-    } catch (e: any) {
-      message.error(e.message || '加载统计数据失败');
+    } catch (e) {
+      message.error(e instanceof Error ? e.message : '加载统计数据失败');
     } finally {
       setLoading(false);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const fetchFlow = useCallback(async () => {
-    setRecordsLoading(true);
-    setRecordsError(null);
+  const fetchBurn = useCallback(async () => {
+    setBurnLoading(true);
+    setBurnError(null);
     try {
-      const res = await destroyRecordApi.list({
-        start_time: dayjs().startOf('day').format('YYYY-MM-DD HH:mm:ss'),
-        end_time: dayjs().endOf('day').format('YYYY-MM-DD HH:mm:ss'),
-        page: 1,
-        pageSize: FLOW_PAGE_SIZE,
-      });
-      setRecords(res?.data ?? []);
-      setRecordsTotal(res?.total ?? 0);
+      setBurn(await adminStatsApi.burnOverview());
     } catch (e) {
-      // 流水请求失败只降级底部聚合卡片，主指标与页面其余部分照常展示
-      setRecords([]);
-      setRecordsTotal(0);
-      setRecordsError(e instanceof Error ? e.message : '销毁流水请求失败');
+      // 焚毁概览失败只降级焚毁分区，其余指标照常展示
+      setBurn(null);
+      setBurnError(e instanceof Error ? e.message : '焚毁概览请求失败');
     } finally {
-      setRecordsLoading(false);
+      setBurnLoading(false);
     }
   }, []);
 
   useEffect(() => {
     void fetchData();
-    void fetchFlow();
-  }, [fetchData, fetchFlow]);
+    void fetchBurn();
+  }, [fetchData, fetchBurn]);
 
   const refresh = useCallback(() => {
     void fetchData();
-    void fetchFlow();
-  }, [fetchData, fetchFlow]);
+    void fetchBurn();
+  }, [fetchData, fetchBurn]);
 
-  /** 前端聚合：按 destroy_reason 分组计数（数量倒序）+ 平均存活秒数 */
-  const flowSummary = useMemo(() => {
-    const counts = new Map<string, number>();
-    let aliveSum = 0;
-    let aliveCount = 0;
-    for (const record of records) {
-      const reason =
-        typeof record.destroy_reason === 'string' && record.destroy_reason
-          ? record.destroy_reason
-          : 'unknown';
-      counts.set(reason, (counts.get(reason) ?? 0) + 1);
-      if (isNum(record.alive_seconds) && record.alive_seconds >= 0) {
-        aliveSum += record.alive_seconds;
-        aliveCount += 1;
-      }
-    }
-    const rows = Array.from(counts.entries())
-      .filter(([, count]) => count > 0)
-      .sort((a, b) => b[1] - a[1]);
-    const total = rows.reduce((sum, [, count]) => sum + count, 0);
-    return {
-      rows,
-      total,
-      avgAliveSeconds: aliveCount > 0 ? Math.round(aliveSum / aliveCount) : null,
-    };
-  }, [records]);
+  /** 原因分布：后端已按 reason 聚合，这里只按 count 倒序并求和 */
+  const reasonRows = useMemo(
+    () =>
+      (burn?.destroy_reason_today ?? [])
+        .filter((r) => isNum(r.count) && r.count > 0)
+        .sort((a, b) => b.count - a.count),
+    [burn],
+  );
+
+  const reasonTotal = useMemo(
+    () => reasonRows.reduce((sum, r) => sum + r.count, 0),
+    [reasonRows],
+  );
 
   const storage = data?.storage;
   const storagePct =
@@ -246,15 +220,13 @@ const Dashboard: React.FC = () => {
       ? Math.min(100, Math.round((storage.db_bytes / storage.total_bytes) * 100))
       : 0;
 
-  const flowTruncated = recordsTotal > records.length;
-
   return (
     <Card
       title="仪表盘"
       extra={
         <Button
           icon={<ReloadOutlined />}
-          loading={loading || recordsLoading}
+          loading={loading || burnLoading}
           onClick={refresh}
         >
           刷新
@@ -453,23 +425,23 @@ const Dashboard: React.FC = () => {
           <Col xs={24} sm={12} md={8} lg={6}>
             <MetricCard
               label="今日焚毁"
-              value={formatNumber(data?.today_destroyed)}
+              value={formatNumber(burn?.today_destroyed)}
               accent="var(--danger)"
-              loading={loading && data == null}
+              loading={burnLoading && burn == null}
             />
           </Col>
           <Col xs={24} sm={12} md={8} lg={6}>
             <MetricCard
               label="待真删消息"
-              value={formatNumber(data?.pending_purge)}
+              value={formatNumber(burn?.pending_purge)}
               accent="#b42318"
               hint="已焚毁、等待真删的积压条数"
-              loading={loading && data == null}
+              loading={burnLoading && burn == null}
             />
           </Col>
         </Row>
 
-        {/* 焚毁原因分布（前端聚合当日销毁流水） */}
+        {/* 焚毁原因分布（后端 /admin/stats/burn-overview 聚合） */}
         <div
           style={{
             background: 'var(--surface)',
@@ -492,10 +464,17 @@ const Dashboard: React.FC = () => {
             }}
           >
             <span>
-              今日焚毁原因分布（基于销毁流水）
-              {flowSummary.total > 0 && (
+              今日焚毁原因分布
+              {reasonTotal > 0 && (
                 <span style={{ marginLeft: 8, color: 'var(--text-3)' }}>
-                  样本 {flowSummary.total.toLocaleString('zh-CN')} 条
+                  样本 {reasonTotal.toLocaleString('zh-CN')} 条
+                </span>
+              )}
+              {burn != null && (
+                <span style={{ marginLeft: 8, color: 'var(--text-3)' }}>
+                  · 活跃焚毁消息{' '}
+                  {formatNumber(burn.active_burn_messages)} 条 · 已真删{' '}
+                  {formatNumber(burn.purged_total)} 条
                 </span>
               )}
             </span>
@@ -514,39 +493,34 @@ const Dashboard: React.FC = () => {
                   fontVariantNumeric: 'tabular-nums',
                 }}
               >
-                {recordsLoading && records.length === 0
+                {burnLoading && burn == null
                   ? '加载中…'
-                  : formatDuration(flowSummary.avgAliveSeconds)}
+                  : formatDuration(burn?.avg_alive_seconds_today)}
               </span>
-              {flowTruncated && (
-                <Tooltip title={`当日销毁流水共 ${recordsTotal} 条，最多统计当日 ${FLOW_PAGE_SIZE} 条流水`}>
-                  <InfoCircleOutlined style={{ color: 'var(--text-3)' }} />
-                </Tooltip>
-              )}
             </span>
           </div>
 
-          {recordsError !== null ? (
+          {burnError !== null ? (
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={`销毁流水加载失败：${recordsError}（不影响上方指标）`}
+              description={`焚毁概览加载失败：${burnError}（不影响上方指标）`}
             />
-          ) : recordsLoading && records.length === 0 ? (
+          ) : burnLoading && burn == null ? (
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description="正在加载今日销毁流水…"
+              description="正在加载今日焚毁概览…"
             />
-          ) : flowSummary.rows.length === 0 || flowSummary.total <= 0 ? (
+          ) : reasonRows.length === 0 || reasonTotal <= 0 ? (
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
               description="暂无今日焚毁数据"
             />
           ) : (
-            flowSummary.rows.map(([key, count]) => {
-              const pct = (count / flowSummary.total) * 100;
+            reasonRows.map(({ reason, count }) => {
+              const pct = (count / reasonTotal) * 100;
               return (
                 <div
-                  key={key}
+                  key={reason}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -554,7 +528,7 @@ const Dashboard: React.FC = () => {
                     marginBottom: 12,
                   }}
                 >
-                  <Tooltip title={key}>
+                  <Tooltip title={reason}>
                     <span
                       style={{
                         flex: '0 0 96px',
@@ -565,15 +539,15 @@ const Dashboard: React.FC = () => {
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      {destroyReasonLabel(key)}
+                      {destroyReasonLabel(reason)}
                     </span>
                   </Tooltip>
                   <div
                     role="progressbar"
-                    aria-label={destroyReasonLabel(key)}
+                    aria-label={destroyReasonLabel(reason)}
                     aria-valuenow={count}
                     aria-valuemin={0}
-                    aria-valuemax={flowSummary.total}
+                    aria-valuemax={reasonTotal}
                     style={{
                       flex: 1,
                       height: 8,

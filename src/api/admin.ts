@@ -13,6 +13,9 @@ import type {
   PendingPurgeQuery,
   PendingPurgeRecord,
   PresenceDevice,
+  BurnOverview,
+  OnlineUserQuery,
+  OnlineUserView,
   PresenceDeviceQuery,
   PresenceOverview,
   RetentionSettings,
@@ -66,6 +69,12 @@ export const readStatsApi = {
     request.get<unknown, MessageReadStats>(`/admin/read-stats/messages/${id}`),
 };
 
+export const adminStatsApi = {
+  /** 焚毁概览（GET /admin/stats/burn-overview）：今日焚毁、原因分布、平均存活时长、活跃焚毁、待真删 */
+  burnOverview: () =>
+    request.get<unknown, BurnOverview>('/admin/stats/burn-overview'),
+};
+
 export const presenceApi = {
   /** 在线监控概览；实测给 online_by_type 数组与 online_ttl_seconds，页面按实测字段消费 */
   overview: () =>
@@ -74,6 +83,15 @@ export const presenceApi = {
   /** 在线设备列表（分页）；默认仅在线，online_only=false 可查看离线设备 */
   devices: (params: PresenceDeviceQuery) =>
     request.get<unknown, PageResult<PresenceDevice>>('/admin/presence/devices', {
+      params,
+    }),
+
+  /**
+   * 用户级在线列表（GET /presence/online，v2.6.0）。
+   * 后端已按 user_id 聚合好 online_devices / last_active_at，前端不再拉全量设备自行分组。
+   */
+  onlineUsers: (params: OnlineUserQuery) =>
+    request.get<unknown, PageResult<OnlineUserView>>('/presence/online', {
       params,
     }),
 

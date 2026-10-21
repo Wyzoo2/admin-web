@@ -274,8 +274,48 @@ export interface PresenceDevice {
 export interface PresenceDeviceQuery {
   online_only?: boolean;
   device_type?: DeviceType | '';
+  /** 服务端按手机号/昵称过滤（v2.6.0 起支持，前端不再本地过滤） */
+  keyword?: string;
   page?: number;
   pageSize?: number;
+}
+
+/**
+ * 用户级在线视图（GET /presence/online，v2.6.0）。
+ * 后端已按用户聚合，前端不再自行把设备列表 group by user_id。
+ */
+export interface OnlineUserView {
+  id: string;
+  phone: string;
+  display_name: string | null;
+  avatar_url?: string | null;
+  signature?: string | null;
+  department?: string | null;
+  is_online: boolean;
+  /** 该用户当前在线设备数（>0 即在线） */
+  online_devices: number;
+  /** 该用户所有设备中最近一次活跃时间 */
+  last_active_at: string | null;
+}
+
+export interface OnlineUserQuery {
+  /** 按手机号/昵称过滤（服务端） */
+  keyword?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+/**
+ * 焚毁概览（GET /admin/stats/burn-overview，v2.6.0）。
+ * 数据总览页专用：原因分布、平均存活时长等均由后端算好，前端不再聚合销毁流水。
+ */
+export interface BurnOverview {
+  today_destroyed: number;
+  destroy_reason_today: { reason: string; count: number }[];
+  avg_alive_seconds_today: number | null;
+  active_burn_messages: number;
+  pending_purge: number;
+  purged_total: number;
 }
 
 /** 焚毁保留策略；阈值由后端定时任务直接消费，前端只做展示与提交，不在本地换算以免与后端漂移 */

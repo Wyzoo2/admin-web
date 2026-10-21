@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { RecentTagGroup } from './RecentEntries';
+import type { RecentItem } from './RecentEntries';
 import {
   App,
   Button,
@@ -18,8 +20,6 @@ import { SearchOutlined } from '@ant-design/icons';
 import { readStatsApi } from '../../../api/admin';
 import IdText from '../../../components/IdText';
 import type { MessageReadStats, MessageReader } from '../../../types/admin';
-import { RecentTagGroup } from './RecentEntries';
-import type { RecentEntry } from './RecentEntries';
 import {
   Dash,
   formatTime,
@@ -30,9 +30,14 @@ import {
 } from './statsShared';
 
 const EMPTY_HINT = '输入消息 ID 查询该消息的应读 / 已读 / 已点开汇总与逐人明细';
-const INPUT_HINT = '可粘贴会话 ID / 消息 ID，或点上方最近条目';
+const INPUT_HINT = '可粘贴会话 ID / 消息 ID，或点下方最近条目';
 
-const MessageStatsPanel = ({ recent }: { recent: RecentEntry[] }) => {
+interface MessageStatsPanelProps {
+  /** 最近消息（最多 3 条），由页面统一取一次 */
+  recent?: RecentItem[];
+}
+
+const MessageStatsPanel = ({ recent = [] }: MessageStatsPanelProps) => {
   const { message } = App.useApp();
 
   const [keyword, setKeyword] = useState('');
@@ -57,7 +62,7 @@ const MessageStatsPanel = ({ recent }: { recent: RecentEntry[] }) => {
     }
   };
 
-  /** 回车、点查询、点快捷标签共用同一条路径：先回填输入框，再立即查询 */
+  /** 回车与点查询共用同一条路径：先回填输入框，再立即查询 */
   const runQuery = (raw: string) => {
     const id = raw.trim();
     setKeyword(id);
@@ -226,9 +231,9 @@ const MessageStatsPanel = ({ recent }: { recent: RecentEntry[] }) => {
 
       <RecentTagGroup
         title="最近消息"
-        entries={recent}
-        activeKey={queriedId}
-        onPick={runQuery}
+        items={recent}
+        activeKey={queriedId ?? undefined}
+        onPick={(id) => runQuery(id)}
       />
 
       {renderContent()}

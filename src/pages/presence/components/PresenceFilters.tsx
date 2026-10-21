@@ -12,15 +12,19 @@ export interface PresenceFilterState {
   onlineOnly: boolean;
   /** 映射接口参数 device_type，'' 表示不传 */
   deviceType: DeviceType | '';
-  /** 契约无此参数：仅做客户端过滤，不进入请求 */
+  /** 映射接口参数 keyword：后端按手机号/昵称在服务端过滤 */
   keyword: string;
 }
+
+/** 设备视图可筛选设备维度；用户视图由 /presence/online 决定，只保留关键字 */
+export type PresenceFilterMode = 'device' | 'user';
 
 interface PresenceFiltersProps {
   value: PresenceFilterState;
   onChange: (next: PresenceFilterState) => void;
   onRefresh: () => void;
   loading: boolean;
+  mode: PresenceFilterMode;
 }
 
 const labelStyle: React.CSSProperties = {
@@ -45,6 +49,7 @@ const PresenceFilters: React.FC<PresenceFiltersProps> = ({
   onChange,
   onRefresh,
   loading,
+  mode,
 }) => (
   <div style={{ marginBottom: 16 }}>
     <div
@@ -55,35 +60,39 @@ const PresenceFilters: React.FC<PresenceFiltersProps> = ({
         alignItems: 'center',
       }}
     >
-      <div style={controlStyle}>
-        <span style={labelStyle}>仅在线</span>
-        <Switch
-          checked={value.onlineOnly}
-          onChange={(checked) => onChange({ ...value, onlineOnly: checked })}
-        />
-      </div>
+      {mode === 'device' && (
+        <>
+          <div style={controlStyle}>
+            <span style={labelStyle}>仅在线</span>
+            <Switch
+              checked={value.onlineOnly}
+              onChange={(checked) => onChange({ ...value, onlineOnly: checked })}
+            />
+          </div>
 
-      <div style={controlStyle}>
-        <span style={labelStyle}>设备类型</span>
-        <Select<DeviceType | ''>
-          value={value.deviceType}
-          style={{ width: 150 }}
-          options={DEVICE_TYPE_OPTIONS}
-          onChange={(deviceType) => onChange({ ...value, deviceType })}
-        />
-      </div>
+          <div style={controlStyle}>
+            <span style={labelStyle}>设备类型</span>
+            <Select<DeviceType | ''>
+              value={value.deviceType}
+              style={{ width: 150 }}
+              options={DEVICE_TYPE_OPTIONS}
+              onChange={(deviceType) => onChange({ ...value, deviceType })}
+            />
+          </div>
+        </>
+      )}
 
       <div style={controlStyle}>
         <Input
           allowClear
           prefix={<SearchOutlined style={{ color: 'var(--text-3)' }} />}
-          placeholder="用户 ID / 昵称 / 手机号 / 设备指纹 / 设备名"
+          placeholder="手机号 / 昵称"
           value={value.keyword}
           style={{ width: 300 }}
           onChange={(e) => onChange({ ...value, keyword: e.target.value })}
         />
         <Tooltip
-          title="后端契约仅支持 online_only / device_type / page / pageSize，该关键字不进入请求，只对当前页已加载的数据做客户端过滤。"
+          title="关键字进入 keyword 请求参数，由后端按手机号/昵称过滤；输入后点「刷新」生效。"
           mouseEnterDelay={0.2}
         >
           <InfoCircleOutlined style={{ color: 'var(--text-3)' }} />
@@ -98,7 +107,9 @@ const PresenceFilters: React.FC<PresenceFiltersProps> = ({
     </div>
 
     <div style={{ marginTop: 8, fontSize: 12, color: 'var(--text-3)' }}>
-      关键字为客户端过滤（契约未提供该参数），仅作用于当前页已加载的设备。
+      {mode === 'device'
+        ? '关键字按手机号/昵称在服务端过滤，输入后点「刷新」生效。'
+        : '该视图由服务端返回在线用户，不支持按设备类型筛选；关键字按手机号/昵称在服务端过滤，输入后点「刷新」生效。'}
     </div>
   </div>
 );

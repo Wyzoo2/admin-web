@@ -1,135 +1,140 @@
 import { useEffect, useState } from 'react';
-import type { ReactNode } from 'react';
-import { Space, Tag } from 'antd';
+import { Tag } from 'antd';
+import dayjs from 'dayjs';
 import { adminMessageApi } from '../../../api/admin';
 import type { AdminMessage } from '../../../types/admin';
-import { formatShortTime, messageTypeLabel } from './statsShared';
-import './recentEntries.css';
+
+/** 快捷入口最多展示的条数：会话与消息各自 3 条 */
+export const RECENT_LIMIT = 3;
+/** 取最近一页消息用于提取「最近会话」；覆盖 3 个不同会话足够 */
+const FETCH_PAGE_SIZE = 50;
+
+const MESSAGE_TYPE_LABEL: Record<string, string> = {
+  text: '文本',
+  image: '图片',
+  voice: '语音',
+  video: '视频',
+  file: '文件',
+};
+
+export interface RecentItem {
+  /** 点选后填入输入框的 id */
+  key: string;
+  /** 展示文案 */
+  label: string;
+  /** 次要说明（会话条数等），无则不展示 */
+  hint?: string;
+}
+
+interface RecentData {
+  conversations: RecentItem[];
+  messages: RecentItem[];
+}
+
+const EMPTY: RecentData = { conversations: [], messages: [] };
 
 /**
- * 快捷入口的数据源：一次取最近的 50 条消息。
- * 后端 /admin/* 的 pageSize 上限是 100，这里取 50 已足够覆盖 8 个会话 + 8 条消息，
- * 也避免首屏为一个辅助区块拉满 100 条。
+ * 最近会话 / 最近消息（各 3 条）。
+ *
+ * 数据来自一次 `GET /admin/messages?page=1&pageSize=50`：服务端已按时间倒序，
+ * 前端只做「按会话去重 + 取前 3」，不参与任何筛选条件的拼装。
+ * 请求失败时静默隐藏整个区块，不影响手输 ID 查询。
  */
-const RECENT_PAGE_SIZE = 50;
-/** 会话与消息各展示 8 个 */
-const RECENT_LIMIT = 8;
-
-/**
- * 挂载时取一次最近消息。
- * 失败返回 null 而不是抛错：快捷入口只是辅助，接口 404 时整块隐藏，
- * 输入框照常可用，不打断主流程也不弹错误。
- */
-export const useRecentMessages = (): AdminMessage[] | null => {
-  const [items, setItems] = useState<AdminMessage[] | null>(null);
+export function useRecentMessages(): RecentData {
+  const [data, setData] = useState<RecentData>(EMPTY);
 
   useEffect(() => {
     let alive = true;
     adminMessageApi
-      .list({ page: 1, pageSize: RECENT_PAGE_SIZE })
+      .list({ page: 1, pageSize: FETCH_PAGE_SIZE })
       .then((res) => {
         if (!alive) return;
-        setItems(Array.isArray(res?.data) ? res.data : []);
+        const list: AdminMessage[] = res?.data ?? [];
+
+        const counts = new Map<string, number>();
+        for (const m of list) {
+          if (!m.conversation_id) continue;
+          counts.set(m.conversation_id, (counts.get(m.conversation_id) ?? 0) + 1);
+        }
+
+        const seen = new Set<string>();
+        const conversations: RecentItem[] = [];
+        for (const m of list) {
+          if (!m.conversation_id || seen.has(m.conversation_id)) continue;
+          seen.add(m.conversation_id);
+          conversations.push({
+            key: m.conversation_id,
+            label: m.conversation_name ?? '私聊',
+            hint: `${counts.get(m.conversation_id) ?? 1} 条`,
+          });
+          if (conversations.length >= RECENT_LIMIT) break;
+        }
+
+        const messages: RecentItem[] = list.slice(0, RECENT_LIMIT).map((m) => ({
+          key: m.id,
+          label: `${MESSAGE_TYPE_LABEL[m.type] ?? m.type} · ${dayjs(m.created_at).format('MM-DD HH:mm')}`,
+        }));
+
+        setData({ conversations, messages });
       })
       .catch(() => {
-        if (alive) setItems(null);
+        if (alive) setData(EMPTY);
       });
     return () => {
       alive = false;
     };
   }, []);
 
-  return items;
-};
-
-/** 一个快捷标签：key 用于查重与选中态，content 为标签内容 */
-export interface RecentEntry {
-  key: string;
-  content: ReactNode;
+  return data;
 }
 
-/**
- * 会话维度快捷入口：按 conversation_id 去重，保留最近 8 个。
- * 私聊没有会话名（后端给 null），回退为「私聊」；计数是这批最近消息里的条数，
- * 不是会话总消息数，因此用淡色小字标注，避免被误读成统计值。
- */
-export const toRecentConversations = (
-  items: AdminMessage[] | null,
-): RecentEntry[] => {
-  if (!items || items.length === 0) return [];
-
-  const seen = new Map<string, { name: string; count: number }>();
-  items.forEach((m) => {
-    const hit = seen.get(m.conversation_id);
-    if (hit) {
-      hit.count += 1;
-      return;
-    }
-    seen.set(m.conversation_id, {
-      name: m.conversation_name || '私聊',
-      count: 1,
-    });
-  });
-
-  return Array.from(seen.entries())
-    .slice(0, RECENT_LIMIT)
-    .map(([id, meta]) => ({
-      key: id,
-      content: (
-        <>
-          {meta.name}
-          <span style={{ marginLeft: 6, fontSize: 11, opacity: 0.65 }}>
-            {meta.count} 条
-          </span>
-        </>
-      ),
-    }));
-};
-
-/** 消息维度快捷入口：最近 8 条，文案 = 类型中文 · MM-DD HH:mm */
-export const toRecentMessages = (
-  items: AdminMessage[] | null,
-): RecentEntry[] =>
-  (items ?? []).slice(0, RECENT_LIMIT).map((m) => ({
-    key: m.id,
-    content: `${messageTypeLabel(m.type)} · ${formatShortTime(m.created_at)}`,
-  }));
-
-/**
- * 快捷标签组：无数据时整块不渲染（连标题一起），避免出现空标题加空白。
- * 用 checkable Tag 而非自定义按钮——外观与列表页的标签一致，
- * 且 hover / 选中态由 AntD 主题接管，暗色主题不用额外配色。
- */
-export const RecentTagGroup = ({
-  title,
-  entries,
-  activeKey,
-  onPick,
-}: {
+interface RecentTagGroupProps {
   title: string;
-  entries: RecentEntry[];
-  activeKey: string | null;
+  items: RecentItem[];
+  /** 当前已查询的 id，用于高亮 */
+  activeKey?: string;
   onPick: (key: string) => void;
-}) => {
-  if (entries.length === 0) return null;
+}
 
+/** 最近条目标签组：点击即回填并查询；无数据时整块不渲染 */
+export function RecentTagGroup({ title, items, activeKey, onPick }: RecentTagGroupProps) {
+  if (items.length === 0) return null;
   return (
-    <div>
-      <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 8 }}>
-        {title}
-      </div>
-      <Space size={[8, 8]} wrap>
-        {entries.map((entry) => (
-          <Tag.CheckableTag
-            key={entry.key}
-            className="recent-tag"
-            checked={activeKey === entry.key}
-            onChange={() => onPick(entry.key)}
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        flexWrap: 'wrap',
+      }}
+    >
+      <span style={{ fontSize: 11, color: 'var(--text-3)' }}>{title}</span>
+      {items.map((item) => {
+        const active = activeKey === item.key;
+        return (
+          <Tag
+            key={item.key}
+            onClick={() => onPick(item.key)}
+            style={{
+              cursor: 'pointer',
+              marginInlineEnd: 0,
+              fontSize: 12,
+              // 用主题变量显式配色：CheckableTag 的选中态依赖 colorPrimary，
+              // 而深色主题的 colorPrimary 是白色，会出现白底白字
+              background: active ? 'var(--accent)' : 'var(--surface)',
+              color: active ? 'var(--accent-text)' : 'var(--text-2)',
+              borderColor: active ? 'var(--accent)' : 'var(--border)',
+            }}
           >
-            {entry.content}
-          </Tag.CheckableTag>
-        ))}
-      </Space>
+            {item.label}
+            {item.hint && (
+              <span style={{ marginLeft: 6, opacity: 0.7, fontSize: 11 }}>
+                {item.hint}
+              </span>
+            )}
+          </Tag>
+        );
+      })}
     </div>
   );
-};
+}

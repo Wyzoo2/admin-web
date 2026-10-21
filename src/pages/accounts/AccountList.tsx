@@ -51,7 +51,8 @@ const AccountList: React.FC = () => {
   const [batchOpen, setBatchOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [resetTarget, setResetTarget] = useState<SafeUser | null>(null);
-  const [detailId, setDetailId] = useState<string | null>(null);
+  /** 详情抽屉目标行：抽屉按手机号向服务端查设备，故 id 与 phone 一起传 */
+  const [detailTarget, setDetailTarget] = useState<SafeUser | null>(null);
   const [exporting, setExporting] = useState(false);
 
   const fetchList = useCallback(async () => {
@@ -226,7 +227,7 @@ const AccountList: React.FC = () => {
       fixed: 'right',
       render: (_, record) => (
         <Space size="small">
-          <Button type="link" size="small" onClick={() => setDetailId(record.id)}>
+          <Button type="link" size="small" onClick={() => setDetailTarget(record)}>
             详情
           </Button>
           <Button type="link" size="small" onClick={() => setResetTarget(record)}>
@@ -375,7 +376,11 @@ const AccountList: React.FC = () => {
         target={resetTarget}
         onClose={() => setResetTarget(null)}
       />
-      <AccountDetailDrawer id={detailId} onClose={() => setDetailId(null)} />
+      <AccountDetailDrawer
+        id={detailTarget?.id ?? null}
+        phone={detailTarget?.phone ?? null}
+        onClose={() => setDetailTarget(null)}
+      />
     </Card>
   );
 };

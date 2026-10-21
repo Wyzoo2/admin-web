@@ -8,10 +8,6 @@ export const Dash = () => <span style={{ color: 'var(--text-3)' }}>—</span>;
 export const formatTime = (value: string | null | undefined): string =>
   value ? dayjs(value).format('YYYY-MM-DD HH:mm:ss') : '—';
 
-/** 快捷入口用的短时间：年月在统计场景下是噪音，只留 MM-DD HH:mm */
-export const formatShortTime = (value: string | null | undefined): string =>
-  value ? dayjs(value).format('MM-DD HH:mm') : '—';
-
 /** 已读率百分比；total 为 0 时按 0 处理，防止 NaN 传入 Progress */
 export const readRatePercent = (read: number, total: number): number =>
   total > 0 ? Math.round((read / total) * 100) : 0;
@@ -34,20 +30,6 @@ export const conversationTypeLabel = (
 ): string => {
   if (!type) return '—';
   return CONVERSATION_TYPE_LABEL[type] || type;
-};
-
-/** 消息类型中文名；同样对枚举外的值原样回显 */
-export const MESSAGE_TYPE_LABEL: Record<string, string> = {
-  text: '文本',
-  image: '图片',
-  voice: '语音',
-  video: '视频',
-  file: '文件',
-};
-
-export const messageTypeLabel = (type: string | null | undefined): string => {
-  if (!type) return '—';
-  return MESSAGE_TYPE_LABEL[type] || type;
 };
 
 /**

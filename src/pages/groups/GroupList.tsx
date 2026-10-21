@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   App,
   Avatar,
@@ -25,12 +25,7 @@ import {
 import dayjs from 'dayjs';
 import { groupApi } from '../../api/group';
 import { accountApi } from '../../api/account';
-import type {
-  GroupCreateBody,
-  GroupInfo,
-  GroupMember,
-  SafeUser,
-} from '../../types';
+import type { GroupCreateBody, GroupInfo, GroupMember } from '../../types';
 
 const { TextArea } = Input;
 
@@ -64,8 +59,15 @@ const GroupList: React.FC = () => {
   // 创建群组
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [allUsers, setAllUsers] = useState<SafeUser[]>([]);
-  const [loadingUsers, setLoadingUsers] = useState(false);
+  // 账号选择器（服务端搜索）
+  const [userOptions, setUserOptions] = useState<{ label: string; value: string }[]>(
+    [],
+  );
+  const [userSearching, setUserSearching] = useState(false);
+  const [selectedUserLabels, setSelectedUserLabels] = useState<
+    Record<string, string>
+  >({});
+  const userSearchSeq = useRef(0);
 
   // 解散
   const [dissolvingId, setDissolvingId] = useState<string | null>(null);
@@ -92,17 +94,48 @@ const GroupList: React.FC = () => {
     fetchList();
   }, [fetchList]);
 
-  const loadUsers = useCallback(async () => {
-    setLoadingUsers(true);
+  /** 账号选择器：服务端搜索（只查启用账号，关键字匹配手机号/姓名） */
+  const searchUsers = useCallback(async (kw: string) => {
+    const seq = ++userSearchSeq.current;
+    setUserSearching(true);
     try {
-      const res = await accountApi.list({ page: 1, pageSize: 200 });
-      setAllUsers(res.data || []);
+      const res = await accountApi.list({
+        page: 1,
+        pageSize: 50,
+        keyword: kw.trim() || undefined,
+        status: 'active',
+      });
+      if (seq !== userSearchSeq.current) return; // 丢弃过期响应
+      setUserOptions(
+        (res.data || []).map((u) => ({
+          label: `${u.display_name}（${u.phone}）`,
+          value: u.id,
+        })),
+      );
     } catch {
-      // ignore
+      // 搜索失败静默：保留上一次选项
     } finally {
-      setLoadingUsers(false);
+      if (seq === userSearchSeq.current) setUserSearching(false);
     }
   }, []);
+
+  /** 清空账号选择器状态，并让在途搜索请求作废 */
+  const resetUserPicker = useCallback(() => {
+    userSearchSeq.current += 1;
+    setUserOptions([]);
+    setSelectedUserLabels({});
+    setUserSearching(false);
+  }, []);
+
+  /** 服务器选项 + 已选标签合并去重（已选项保留记录下来的标签） */
+  const mergedUserOptions = useMemo(() => {
+    const map = new Map<string, { label: string; value: string }>();
+    userOptions.forEach((o) => map.set(o.value, o));
+    Object.entries(selectedUserLabels).forEach(([value, label]) =>
+      map.set(value, { label, value }),
+    );
+    return Array.from(map.values());
+  }, [userOptions, selectedUserLabels]);
 
   const fetchMembers = useCallback(async (id: string) => {
     setMembersLoading(true);
@@ -122,8 +155,8 @@ const GroupList: React.FC = () => {
   };
 
   const openCreateGroup = () => {
+    resetUserPicker();
     setCreateOpen(true);
-    if (allUsers.length === 0) loadUsers();
   };
 
   const onCreateGroup = async () => {
@@ -140,6 +173,7 @@ const GroupList: React.FC = () => {
       message.success('群组已创建');
       setCreateOpen(false);
       createForm.resetFields();
+      resetUserPicker();
       setPage(1);
       fetchList();
     } catch (e: any) {
@@ -422,6 +456,7 @@ const GroupList: React.FC = () => {
         onCancel={() => {
           setCreateOpen(false);
           createForm.resetFields();
+          resetUserPicker();
         }}
         okText="创建"
         cancelText="取消"
@@ -443,15 +478,22 @@ const GroupList: React.FC = () => {
             <Select
               mode="multiple"
               placeholder="可选，可后续添加"
-              loading={loadingUsers}
               showSearch
-              optionFilterProp="label"
-              options={allUsers
-                .filter((u) => u.status === 'active')
-                .map((u) => ({
-                  label: `${u.display_name}（${u.phone}）`,
-                  value: u.id,
-                }))}
+              filterOption={false}
+              loading={userSearching}
+              options={mergedUserOptions}
+              onSearch={(kw) => {
+                void searchUsers(kw);
+              }}
+              onOpenChange={(open) => {
+                if (open && mergedUserOptions.length === 0) void searchUsers('');
+              }}
+              onSelect={(value, option) => {
+                const opt = Array.isArray(option) ? option[0] : option;
+                const label = opt && typeof opt.label === 'string' ? opt.label : '';
+                if (!label) return;
+                setSelectedUserLabels((prev) => ({ ...prev, [String(value)]: label }));
+              }}
             />
           </Form.Item>
         </Form>

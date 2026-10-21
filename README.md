@@ -47,11 +47,11 @@ VITE_API_BASE_URL=http://192.168.9.105:9091/api/v1
 | 菜单 | 路由 | 说明 | 归属 |
 |---|---|---|---|
 | 仪表盘 | `/dashboard` | 账号/消息/群组/存储 12 项指标 + 焚毁 V6.0 分区（在线用户、在线设备、今日焚毁、待真删）+ 今日焚毁原因分布与平均存活时长 | 基础 + V6 |
-| 账号管理 | `/accounts` | 列表（手机号/姓名/部门/状态筛选）、单个开通、批量开通、Excel 导入（≤5MB）、重置密码、启用/停用、详情、CSV 导出 | 基础 |
+| 账号管理 | `/accounts` | 列表（手机号/姓名/部门/状态筛选）、单个开通、批量开通、Excel 导入（≤5MB）、重置密码、启用/停用、CSV 导出；详情抽屉含**该账号设备列表**（在线状态/最后活跃/强制下线，当前设备禁用） | 基础 |
 | 消息管理 | `/messages` | 消息检索（会话/发送人/消息类型/关键词/时间段/仅焚毁/仅已焚毁）、详情抽屉（回执明细 + 焚毁状态 + 真删墓碑）、手动焚毁（需手输消息 ID） | V6 |
 | 焚毁记录 | `/destroy-records` | 销毁流水（阶段/会话类型/原因/存活时长，CSV 导出）+ 待真删队列（确认进度、应真删时间） | V6 |
-| 已读统计 | `/read-stats` | 会话维度（成员已读/未读/已读率）+ 消息维度（应读/已读/已点开 + 读者明细），内置最近会话/最近消息快捷入口 | V6 |
-| 在线监控 | `/presence` | 在线概览（在线用户/设备/全部设备/疑似失联 + 按设备类型）、设备列表、强制下线（需手输设备记录 ID） | V6 |
+| 已读统计 | `/read-stats` | 会话维度（成员已读/未读/已读率）+ 消息维度（应读/已读/已点开 + 读者明细）；支持手输会话 ID / 消息 ID，或在「最近会话 / 最近消息」快捷标签里点选（各取最近 3 条，来自一次 `GET /admin/messages?page=1&pageSize=50`，仅做取前 3，不拼筛选条件） | V6 |
+| 在线监控 | `/presence` | 在线概览（在线用户/设备/全部设备/疑似失联 + 按设备类型）；**「按设备」与「按用户」双视图**：设备视图走 `/admin/presence/devices`（`online_only/device_type/keyword` 全部服务端过滤），用户视图走 `/presence/online`（服务端已按 user_id 聚合，含 `online_devices`）；强制下线（设备视图逐台、用户视图逐用户，均需手输 ID/手机号；**当前设备一律禁用**） | V6 |
 | 群组管理 | `/groups` | 群组/频道列表、创建、群资料、成员增删与角色、管理员强制解散 | 基础 |
 | 系统公告 | `/announcements` | 发布（优先级/定向部门）、列表（含已读数）、删除 | 基础 |
 | 意见反馈 | `/feedback` | 列表、回复（回复即置为已处理） | 基础 |
@@ -74,6 +74,11 @@ VITE_API_BASE_URL=http://192.168.9.105:9091/api/v1
   以外的全部接口（403「请先修改初始密码后再使用其他功能」），前端据此跳改密页。
 - **分页上限**：`/admin/*` 端点 `pageSize ≤ 100`（101 直接 400）；`/accounts`、
   `/audit-logs` 允许 200。前端下拉选项与导出翻页均已按上限收敛。
+- **在线判定与心跳**：后端把设备判为在线当且仅当「WS 已连接」或「`last_active_at` 在
+  `ONLINE_TTL_SECONDS`（默认 150s）内」。管理后台没有 WS 长连接，因此 `App.tsx` 里挂了
+  `useHeartbeat()`：登录后每 60s 调一次 `POST /auth/devices/:deviceId/heartbeat`（仅前台，
+  切回前台立即补发），入参是登录响应的 `device.id`（设备记录 id，不是指纹）。
+  不发心跳的话，登录 150 秒后就会被判离线，且「最后活跃」永远停在登录那一刻。
 
 ### 接口分组
 
@@ -88,7 +93,8 @@ VITE_API_BASE_URL=http://192.168.9.105:9091/api/v1
 | 消息管理（V6） | `GET /admin/messages`、`GET /admin/messages/:id`、`POST /admin/messages/:id/destroy` |
 | 焚毁记录（V6） | `GET /admin/destroy-records`（`stage=pending_purge` 切换到待真删队列，两视图 item 同构） |
 | 已读统计（V6） | `GET /admin/read-stats/conversations/:id`、`GET /admin/read-stats/messages/:id` |
-| 在线监控（V6） | `GET /admin/presence/overview`、`GET /admin/presence/devices`、`POST /admin/devices/:deviceId/offline` |
+| 在线监控（V6） | `GET /admin/presence/overview`、`GET /admin/presence/devices`（`online_only/device_type/keyword`）、`GET /presence/online`（用户级在线聚合）、`POST /admin/devices/:deviceId/offline` |
+| 焚毁概览（V6） | `GET /admin/stats/burn-overview`（今日焚毁/原因分布/平均存活/活跃焚毁/待真删/已真删） |
 | 保留策略（V6） | `GET /admin/settings/retention`（`PUT` 后端未实现） |
 
 ### 后端实现与设计文档的差异（前端已按实测适配）
@@ -96,8 +102,8 @@ VITE_API_BASE_URL=http://192.168.9.105:9091/api/v1
 | 差异 | 实际行为 | 前端处理 |
 |---|---|---|
 | 消息详情回执 | `receipts` 是**数组**，另有 `acked_count`、`tombstone` | 由数组前端派生应读/已读/已点开/已焚毁四项汇总 + 回执明细表 |
-| 在线概览字段 | 是 `online_by_type: [{device_type,count}]`，另含 `total_devices`、`stale_online_devices` | 按数组渲染类型分布 |
-| 设备列表字段 | `display_name` / `phone` / `device_fingerprint`，无 IP | 表头为「设备指纹」，不展示 IP 列 |
+| 在线概览字段 | 是 `online_by_type: [{device_type,count}]`，另含 `total_devices`、`stale_online_devices`（无 `total_users`/`generated_at`） | 按数组渲染类型分布 |
+| 设备列表字段 | `display_name` / `phone` / `device_fingerprint`，`keyword` 可按手机号/昵称服务端过滤，**仍无 IP** | 表头为「设备指纹」，不展示 IP 列；筛选全部走服务端 |
 | 强制下线参数 | 路径参数是**设备记录 id**，不是设备指纹 | 二次确认要求手输设备记录 ID，并在弹框内同时展示指纹供核对 |
 | 已读统计 | 无 `member_count` / 逐条消息已读率；消息维度无 `burned` | 用 `message_total` + 成员 `read_rate`，并在页面注明后端未提供逐条已读率 |
 | 保留策略 | `editable: false`，`PUT` 返回 404（由 env 驱动，需重启） | 表单只读 + 展示后端 `note`，绝不调用 PUT |

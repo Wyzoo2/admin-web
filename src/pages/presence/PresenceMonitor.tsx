@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { App, Badge, Button, Card, Table, Tag, Tooltip } from 'antd';
+import { App, Badge, Button, Card, Segmented, Table, Tag, Tooltip } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import dayjs from 'dayjs';
 import { presenceApi } from '../../api/admin';
 import type {
   PresenceDevice,
@@ -15,9 +14,14 @@ import ForceOfflineModal from './components/ForceOfflineModal';
 import PresenceFilters from './components/PresenceFilters';
 import type { PresenceFilterState } from './components/PresenceFilters';
 import PresenceOverviewCards from './components/PresenceOverviewCards';
+import UserPresenceTable from './components/UserPresenceTable';
+import {
+  EMPTY,
+  formatAbsoluteTime,
+  formatRelativeTime,
+} from './components/presenceFormat';
 import { useAuthStore } from '../../store/auth';
 
-const EMPTY = '—';
 /** 次信息（手机号等）统一 11px 次要色 */
 const SECONDARY_STYLE: React.CSSProperties = {
   fontSize: 11,
@@ -34,29 +38,14 @@ const PRIMARY_STYLE: React.CSSProperties = {
   textOverflow: 'ellipsis',
 };
 
-function formatAbsoluteTime(input?: string | null): string {
-  if (!input) return EMPTY;
-  const t = dayjs(input);
-  return t.isValid() ? t.format('YYYY-MM-DD HH:mm:ss') : EMPTY;
-}
+/** 视图模式：「按设备」保持原有行为，「按用户」消费 /presence/online 的服务端聚合结果 */
+type PresenceViewMode = 'device' | 'user';
 
-/** 相对时间：不引入 dayjs relativeTime 插件，按毫秒差自行换算 */
-function formatRelativeTime(input?: string | null): string {
-  if (!input) return EMPTY;
-  const t = dayjs(input);
-  if (!t.isValid()) return EMPTY;
-  const diffMinutes = Math.floor((dayjs().valueOf() - t.valueOf()) / 60000);
-  if (diffMinutes < 0) return '刚刚';
-  if (diffMinutes < 1) return '刚刚';
-  if (diffMinutes < 60) return `${diffMinutes} 分钟前`;
-  const hours = Math.floor(diffMinutes / 60);
-  if (hours < 24) return `${hours} 小时前`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days} 天前`;
-  const months = Math.floor(days / 30);
-  if (months < 12) return `${months} 个月前`;
-  return `${Math.floor(months / 12)} 年前`;
-}
+const DEFAULT_FILTERS: PresenceFilterState = {
+  onlineOnly: true,
+  deviceType: '',
+  keyword: '',
+};
 
 const errorMessage = (e: unknown, fallback: string): string =>
   e instanceof Error && e.message ? e.message : fallback;
@@ -74,15 +63,22 @@ const PresenceMonitor: React.FC = () => {
   const [listLoading, setListLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
-  const [filters, setFilters] = useState<PresenceFilterState>({
-    onlineOnly: true,
-    deviceType: '',
-    keyword: '',
-  });
+  /** 筛选栏编辑中的草稿值 */
+  const [filters, setFilters] = useState<PresenceFilterState>(DEFAULT_FILTERS);
+  /**
+   * 已下发到请求的服务端条件：设备维度筛选改动即生效，
+   * 关键字只在「刷新/查询」时下发，避免逐字符打后端。
+   */
+  const [applied, setApplied] = useState<PresenceFilterState>(DEFAULT_FILTERS);
 
   const [offlineTarget, setOfflineTarget] = useState<PresenceDevice | null>(
     null,
   );
+
+  /** 默认「按设备」：保持原有列表行为不变 */
+  const [viewMode, setViewMode] = useState<PresenceViewMode>('device');
+  /** 按用户视图的重载信号：刷新按钮、强制下线成功后自增 */
+  const [userReloadToken, setUserReloadToken] = useState(0);
 
   const fetchOverview = useCallback(async () => {
     setOverviewLoading(true);
@@ -105,13 +101,15 @@ const PresenceMonitor: React.FC = () => {
   const fetchDevices = useCallback(async () => {
     setListLoading(true);
     try {
-      // 严格按契约传参：仅 online_only / device_type / page / pageSize
       const params: PresenceDeviceQuery = {
-        online_only: filters.onlineOnly,
+        online_only: applied.onlineOnly,
         page,
         pageSize,
       };
-      if (filters.deviceType) params.device_type = filters.deviceType;
+      if (applied.deviceType) params.device_type = applied.deviceType;
+      // 关键字由后端按手机号/昵称过滤（v2.6.0），trim 后非空才传
+      const keyword = applied.keyword.trim();
+      if (keyword) params.keyword = keyword;
       const res = await presenceApi.devices(params);
       setDevices(res?.data ?? []);
       setTotal(res?.total ?? 0);
@@ -123,50 +121,39 @@ const PresenceMonitor: React.FC = () => {
     } finally {
       setListLoading(false);
     }
-  }, [filters.onlineOnly, filters.deviceType, page, pageSize, message]);
+  }, [applied, page, pageSize, message]);
 
   useEffect(() => {
     void fetchOverview();
   }, [fetchOverview]);
 
   useEffect(() => {
-    void fetchDevices();
-  }, [fetchDevices]);
+    // 用户视图的数据来自 /presence/online，不必再拉设备列表；
+    // 切回设备视图时再按当前 applied 条件查一次
+    if (viewMode === 'device') void fetchDevices();
+  }, [fetchDevices, viewMode]);
 
   const refreshAll = useCallback(() => {
-    void fetchDevices();
+    // 刷新即「查询」：把草稿里的关键字下发到请求参数（applied 换新引用会重新触发 fetchDevices）
+    setApplied({ ...filters });
     void fetchOverview();
-  }, [fetchDevices, fetchOverview]);
+    setUserReloadToken((t) => t + 1);
+  }, [filters, fetchOverview]);
 
   const onFiltersChange = useCallback(
     (next: PresenceFilterState) => {
-      // 服务端筛选条件变化时回到第一页；仅关键字变化不触发重新请求
+      setFilters(next);
+      // 设备维度筛选变化时回到第一页并立即下发；关键字仍由「刷新」提交
       if (
         next.onlineOnly !== filters.onlineOnly ||
         next.deviceType !== filters.deviceType
       ) {
         setPage(1);
+        setApplied({ ...next, keyword: applied.keyword });
       }
-      setFilters(next);
     },
-    [filters.onlineOnly, filters.deviceType],
+    [filters.onlineOnly, filters.deviceType, applied.keyword],
   );
-
-  /** 关键字为客户端过滤，仅作用于当前页；只匹配后端真实返回的字段 */
-  const visibleDevices = useMemo(() => {
-    const kw = filters.keyword.trim().toLowerCase();
-    if (!kw) return devices;
-    return devices.filter((row) =>
-      [
-        row.user_id,
-        row.display_name,
-        row.phone,
-        row.id,
-        row.device_fingerprint,
-        row.device_name,
-      ].some((v) => typeof v === 'string' && v.toLowerCase().includes(kw)),
-    );
-  }, [devices, filters.keyword]);
 
   // 只拦「当前设备」：登录时记下的设备指纹 vs 行上的 device_fingerprint
   const currentDeviceId = useAuthStore((s) => s.deviceId);
@@ -177,13 +164,11 @@ const PresenceMonitor: React.FC = () => {
   );
 
   const emptyText = useMemo(() => {
-    const kw = filters.keyword.trim();
-    if (kw && devices.length > 0) {
-      return `没有匹配「${kw}」的设备（关键字为客户端过滤，仅作用于当前页）`;
-    }
-    if (filters.onlineOnly) return '当前无在线设备';
+    const kw = applied.keyword.trim();
+    if (kw && devices.length === 0) return `没有匹配「${kw}」的设备`;
+    if (applied.onlineOnly) return '当前无在线设备';
     return '暂无设备数据';
-  }, [devices.length, filters.keyword, filters.onlineOnly]);
+  }, [applied.keyword, applied.onlineOnly, devices.length]);
 
   /** 列宽之和必须等于 scroll.x（见 TABLE_WIDTH） */
   const columns: ColumnsType<PresenceDevice> = [
@@ -360,34 +345,60 @@ const PresenceMonitor: React.FC = () => {
       </Card>
 
       <Card title="在线设备">
+        <Segmented
+          value={viewMode}
+          onChange={(v) => setViewMode(v as PresenceViewMode)}
+          options={[
+            { label: '按设备', value: 'device' },
+            { label: '按用户', value: 'user' },
+          ]}
+          style={{ marginBottom: 16 }}
+        />
+
         <PresenceFilters
           value={filters}
           onChange={onFiltersChange}
           onRefresh={refreshAll}
           loading={listLoading || overviewLoading}
+          mode={viewMode}
         />
 
-        <Table<PresenceDevice>
-          rowKey="id"
-          size="middle"
-          columns={columns}
-          dataSource={visibleDevices}
-          loading={listLoading}
-          scroll={{ x: TABLE_WIDTH }}
-          locale={{ emptyText }}
-          pagination={{
-            current: page,
-            pageSize,
-            total,
-            showSizeChanger: true,
-            showTotal: (t) => `共 ${t} 台设备`,
-            pageSizeOptions: [10, 20, 50, 100],
-            onChange: (p, ps) => {
-              setPage(p);
-              setPageSize(ps);
-            },
-          }}
-        />
+        {viewMode === 'user' && (
+          <div style={{ marginBottom: 12, fontSize: 12, color: 'var(--text-3)' }}>
+            按用户视图来自 <span className="cell-mono">/presence/online</span>
+            （服务端聚合，仅在线用户）。
+          </div>
+        )}
+
+        {viewMode === 'device' ? (
+          <Table<PresenceDevice>
+            rowKey="id"
+            size="middle"
+            columns={columns}
+            dataSource={devices}
+            loading={listLoading}
+            scroll={{ x: TABLE_WIDTH }}
+            locale={{ emptyText }}
+            pagination={{
+              current: page,
+              pageSize,
+              total,
+              showSizeChanger: true,
+              showTotal: (t) => `共 ${t} 台设备`,
+              pageSizeOptions: [10, 20, 50, 100],
+              onChange: (p, ps) => {
+                setPage(p);
+                setPageSize(ps);
+              },
+            }}
+          />
+        ) : (
+          <UserPresenceTable
+            keyword={applied.keyword}
+            reloadToken={userReloadToken}
+            onForceOfflineDone={refreshAll}
+          />
+        )}
       </Card>
 
       <ForceOfflineModal
