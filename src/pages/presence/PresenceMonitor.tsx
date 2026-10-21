@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { App, Badge, Button, Card, Table, Tooltip } from 'antd';
+import { App, Badge, Button, Card, Table, Tag, Tooltip } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import { presenceApi } from '../../api/admin';
@@ -15,6 +15,7 @@ import ForceOfflineModal from './components/ForceOfflineModal';
 import PresenceFilters from './components/PresenceFilters';
 import type { PresenceFilterState } from './components/PresenceFilters';
 import PresenceOverviewCards from './components/PresenceOverviewCards';
+import { useAuthStore } from '../../store/auth';
 
 const EMPTY = '—';
 /** 次信息（手机号等）统一 11px 次要色 */
@@ -167,6 +168,14 @@ const PresenceMonitor: React.FC = () => {
     );
   }, [devices, filters.keyword]);
 
+  // 只拦「当前设备」：登录时记下的设备指纹 vs 行上的 device_fingerprint
+  const currentDeviceId = useAuthStore((s) => s.deviceId);
+  const isCurrentDevice = useCallback(
+    (row: PresenceDevice) =>
+      !!currentDeviceId && row.device_fingerprint === currentDeviceId,
+    [currentDeviceId],
+  );
+
   const emptyText = useMemo(() => {
     const kw = filters.keyword.trim();
     if (kw && devices.length > 0) {
@@ -186,9 +195,18 @@ const PresenceMonitor: React.FC = () => {
         const name = row.display_name ?? row.user_id;
         return (
           <div style={{ lineHeight: 1.4, minWidth: 0 }}>
-            <Tooltip title={name} mouseEnterDelay={0.3}>
-              <div style={PRIMARY_STYLE}>{name}</div>
-            </Tooltip>
+            <div
+              style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}
+            >
+              <Tooltip title={name} mouseEnterDelay={0.3}>
+                <span style={PRIMARY_STYLE}>{name}</span>
+              </Tooltip>
+              {isCurrentDevice(row) && (
+                <Tag color="blue" style={{ marginInlineEnd: 0 }}>
+                  当前设备
+                </Tag>
+              )}
+            </div>
             <div style={SECONDARY_STYLE}>{row.phone || EMPTY}</div>
           </div>
         );
@@ -294,15 +312,38 @@ const PresenceMonitor: React.FC = () => {
       title: '操作',
       key: 'action',
       width: 120,
-      render: (_, row) => (
-        <Button
-          size="small"
-          danger
-          onClick={() => setOfflineTarget(row)}
-        >
-          强制下线
-        </Button>
-      ),
+      render: (_, row) => {
+        const button = (
+          <Button
+            size="small"
+            danger
+            disabled={isCurrentDevice(row)}
+            onClick={() => setOfflineTarget(row)}
+          >
+            强制下线
+          </Button>
+        );
+        // disabled 按钮不触发鼠标事件，外层 span 承接 Tooltip
+        return (
+          <Tooltip
+            title={
+              isCurrentDevice(row)
+                ? '当前设备不能强制下线（下线自己会让当前会话立即失效）'
+                : ''
+            }
+            mouseEnterDelay={0.2}
+          >
+            <span
+              style={{
+                display: 'inline-block',
+                cursor: isCurrentDevice(row) ? 'not-allowed' : 'default',
+              }}
+            >
+              {button}
+            </span>
+          </Tooltip>
+        );
+      },
     },
   ];
 
