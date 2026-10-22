@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { App, Button, Checkbox, Form, Input, Tooltip } from 'antd';
+import { useEffect, useState } from 'react';
+import { App, Button, Form, Input, Tooltip } from 'antd';
 import { LockOutlined, MoonOutlined, PhoneOutlined, SunOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/auth';
@@ -11,22 +11,9 @@ import { useThemeStore } from '../../store/theme';
 
 
 
-const REMEMBER_KEY = 'burnmsg_remembered_account';
-
 interface LoginFormValues {
   phone: string;
   password: string;
-  remember: boolean;
-}
-
-function loadRemembered(): Partial<LoginFormValues> {
-  try {
-    const s = localStorage.getItem(REMEMBER_KEY);
-    if (s) return { ...JSON.parse(s), remember: true };
-  } catch {
-    /* ignore */
-  }
-  return { phone: '', password: '', remember: false };
 }
 
 const Login: React.FC = () => {
@@ -35,6 +22,11 @@ const Login: React.FC = () => {
   const login = useAuthStore((s) => s.login);
   const logout = useAuthStore((s) => s.logout);
   const [loading, setLoading] = useState(false);
+
+  // 「记住账号密码」功能已下线：清掉历史版本留在本机的明文凭据
+  useEffect(() => {
+    localStorage.removeItem('burnmsg_remembered_account');
+  }, []);
 
   const mode = useThemeStore((s) => s.mode);
   const toggleTheme = useThemeStore((s) => s.toggle);
@@ -55,15 +47,6 @@ const Login: React.FC = () => {
         logout();
         message.error('该账号不是管理员，无法登录管理后台');
         return;
-      }
-
-      if (values.remember) {
-        localStorage.setItem(
-          REMEMBER_KEY,
-          JSON.stringify({ phone: values.phone, password: values.password }),
-        );
-      } else {
-        localStorage.removeItem(REMEMBER_KEY);
       }
 
       if (res.force_change_pwd) {
@@ -213,7 +196,6 @@ const Login: React.FC = () => {
 
           <Form<LoginFormValues>
             layout="vertical"
-            initialValues={loadRemembered()}
             onFinish={onFinish}
             requiredMark={false}
           >
@@ -244,11 +226,6 @@ const Login: React.FC = () => {
                 placeholder="请输入密码"
                 autoComplete="current-password"
               />
-            </Form.Item>
-            <Form.Item name="remember" valuePropName="checked">
-              <Checkbox style={{ fontSize: 12, color: 'var(--text-2)' }}>
-                记住账号密码（保存在本机浏览器）
-              </Checkbox>
             </Form.Item>
             <Form.Item style={{ marginBottom: 8 }}>
               <Button
