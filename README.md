@@ -33,7 +33,7 @@ npm run dev      # http://localhost:5173
 后端地址在 `.env` 中配置，修改后需重启 dev server：
 
 ```
-VITE_API_BASE_URL=http://192.168.9.105:9091/api/v1
+VITE_API_BASE_URL=http://112.4.135.254:19091/api/v1
 ```
 
 > `.env` 目前随仓库提交（内网地址），换环境时记得同步修改；若后续改为多环境部署，
@@ -152,6 +152,8 @@ admin-web/
 - **表单**：批量/写操作均有二次确认；手动焚毁与强制下线要求手输目标 ID，防误操作。
 
 ## 开发与验收
+
+> 部署与升级（构建、Nginx、上线验证、回滚、排障）见 [`docs/ADMIN_UPDATE_2026-10-27.md`](./docs/ADMIN_UPDATE_2026-10-27.md)。
 
 目前没有自动化测试与 ESLint 配置，提交前至少保证：
 
